@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ScanBite
 
 ScanBite is a premium dark restaurant SaaS frontend built with Next.js App Router, TypeScript, Tailwind CSS, Framer Motion, and Lucide icons.
@@ -22,3 +23,6 @@ ScanBite is a premium dark restaurant SaaS frontend built with Next.js App Route
 - `types/` — shared TypeScript types
 - `store/` — client state stores
 - `styles/` — global and theme styles
+=======
+# ScanBite-frontend
+>>>>>>> 1b309c006e09013dc1b81ef7a843b550d88cae5d
