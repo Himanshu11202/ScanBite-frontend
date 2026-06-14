@@ -91,7 +91,8 @@ export function DigitalMenu() {
         if (cafeRes.data) {
           setCafeName(cafeRes.data.name);
           if (cafeRes.data.imageUrl) {
-            const fullUrl = cafeRes.data.imageUrl.startsWith('http') ? cafeRes.data.imageUrl : `http://localhost:8080${cafeRes.data.imageUrl}`;
+            const backendBase = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://scanbite-backend.onrender.com';
+            const fullUrl = cafeRes.data.imageUrl.startsWith('http') ? cafeRes.data.imageUrl : `${backendBase}${cafeRes.data.imageUrl}`;
             setCafeImage(fullUrl);
           }
         }
@@ -102,6 +103,7 @@ export function DigitalMenu() {
 
         // Fetch menu items
         const itemsRes = await api.get<BackendItem[]>('/menu');
+        const backendBase = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://scanbite-backend.onrender.com';
         const mapped = itemsRes.data
           .filter((it) => it.cafe?.id === cafeId)
           .map((it) => ({
@@ -111,7 +113,7 @@ export function DigitalMenu() {
             description: it.description,
             isVeg: it.veg,
             spicy: it.spicy,
-            image: it.imageUrl ? (it.imageUrl.startsWith('http') ? it.imageUrl : `http://localhost:8080${it.imageUrl}`) : undefined,
+            image: it.imageUrl ? (it.imageUrl.startsWith('http') ? it.imageUrl : `${backendBase}${it.imageUrl}`) : undefined,
             category: it.category?.name || '',
             available: it.available !== false
           }));

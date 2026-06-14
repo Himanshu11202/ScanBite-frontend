@@ -113,11 +113,13 @@ export function TableManager() {
   function getFullQrUrl(path?: string) {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    return `http://localhost:8080${path}`;
+    const backendBase = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://scanbite-backend.onrender.com';
+    return `${backendBase}${path}`;
   }
 
   function getQrPayload(t: CafeTable) {
-    return `http://localhost:3001/?cafeId=${cafeId}&tableNumber=${t.tableNumber}`;
+    const frontendUrl = typeof window !== 'undefined' ? window.location.origin : 'https://scanbite.vercel.app';
+    return `${frontendUrl}/?cafeId=${cafeId}&tableNumber=${t.tableNumber}`;
   }
 
   async function downloadQr(t: CafeTable) {

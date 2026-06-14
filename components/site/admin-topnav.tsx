@@ -65,7 +65,7 @@ export function AdminTopnav({
             <div className="flex items-center gap-3">
               {cafe.imageUrl && (
                 <img 
-                  src={cafe.imageUrl} 
+                  src={cafe.imageUrl.startsWith('http') ? cafe.imageUrl : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://scanbite-backend.onrender.com'}${cafe.imageUrl}`} 
                   alt={cafe.name} 
                   className="h-8 w-8 rounded-full object-cover border border-white/10" 
                 />

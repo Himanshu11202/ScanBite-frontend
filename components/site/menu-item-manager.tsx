@@ -255,7 +255,7 @@ export function MenuItemManager() {
                     <p className="mt-1 text-xs text-white/60">{it.description}</p>
                     <div className="mt-2 flex items-center gap-2 text-sm text-white/80">
                       <span className="font-semibold">₹{it.price.toFixed(2)}</span>
-                      <span className="text-xs text-white/50">{Array.from({length: it.spicy}).map((_,i)=>(<span key={i} role="img" aria-label="spicy">🌶️</span>))}</span>
+                      <span className="text-xs text-white/50">{Array.from({length: it.spicy || 0}).map((_,i)=>(<span key={i} role="img" aria-label="spicy">🌶️</span>))}</span>
                     </div>
                   </div>
 

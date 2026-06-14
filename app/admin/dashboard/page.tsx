@@ -48,16 +48,18 @@ export default function AdminDashboardPage() {
     ? cafe.coverPhotos.split(',').filter((url: string) => url.trim() !== '') 
     : [];
 
+  const backendBase = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://scanbite-backend.onrender.com';
+
   return (
     <div className="space-y-10">
       {cafe && (
         <div className="space-y-6">
           {/* Main Brand Banner */}
           <div className="relative overflow-hidden rounded-[2rem] border border-white/10 p-8 shadow-soft bg-slate-950">
-            {coverUrls.length > 0 && (
+            {coverUrls.length > 0 && coverUrls[0] && (
               <div 
                 className="absolute inset-0 bg-cover bg-center opacity-30 transition-all duration-700 blur-[2px]" 
-                style={{ backgroundImage: `url(http://localhost:8080${coverUrls[0]})` }}
+                style={{ backgroundImage: `url(${coverUrls[0].startsWith('http') ? coverUrls[0] : `${backendBase}${coverUrls[0]}`})` }}
               />
             )}
             <div className="absolute inset-0 bg-gradient-to-r from-black via-black/85 to-transparent" />
@@ -65,7 +67,7 @@ export default function AdminDashboardPage() {
             <div className="relative flex flex-col md:flex-row items-center gap-6">
               {cafe.imageUrl ? (
                 <img 
-                  src={`http://localhost:8080${cafe.imageUrl}`} 
+                  src={cafe.imageUrl.startsWith('http') ? cafe.imageUrl : `${backendBase}${cafe.imageUrl}`} 
                   alt={cafe.name} 
                   className="h-24 w-24 rounded-full object-cover border-2 border-amber-400/40 shadow-xl" 
                 />
@@ -99,7 +101,7 @@ export default function AdminDashboardPage() {
                     className="group relative h-28 overflow-hidden rounded-xl border border-white/10 bg-neutral-900 shadow-lg"
                   >
                     <img 
-                      src={`http://localhost:8080${url}`} 
+                      src={url.startsWith('http') ? url : `${backendBase}${url}`} 
                       alt={`Cover ${index + 1}`} 
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-110" 
                     />
