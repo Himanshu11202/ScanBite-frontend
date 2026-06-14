@@ -1,10 +1,18 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-const menuItems = [
-  { id: '1', name: 'Charred Wagyu Burger', description: 'Truffle aioli, smoked cheddar, brioche bun.', price: 18.5 },
-  { id: '2', name: 'Golden Cauliflower Wings', description: 'Spicy yuzu glaze, sesame crunch.', price: 12.9 },
-  { id: '3', name: 'Smoked Salmon Toast', description: 'Ricotta, capers, lemon zest.', price: 15.2 }
+interface GridMenuItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category?: string;
+}
+
+const menuItems: GridMenuItem[] = [
+  { id: '1', name: 'Charred Wagyu Burger', description: 'Truffle aioli, smoked cheddar, brioche bun.', price: 18.5, category: 'Mains' },
+  { id: '2', name: 'Golden Cauliflower Wings', description: 'Spicy yuzu glaze, sesame crunch.', price: 12.9, category: 'Starters' },
+  { id: '3', name: 'Smoked Salmon Toast', description: 'Ricotta, capers, lemon zest.', price: 15.2, category: 'Brunch' }
 ];
 
 export function MenuGrid() {
