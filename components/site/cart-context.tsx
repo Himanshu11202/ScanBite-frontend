@@ -24,11 +24,12 @@ const CartContext = createContext<CartContextValue | undefined>(undefined);
 export const CartProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
-      const raw = localStorage.getItem('scanbite:cart');
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      return [];
-    }
+      if (typeof window !== 'undefined') {
+        const raw = localStorage.getItem('scanbite:cart');
+        return raw ? JSON.parse(raw) : [];
+      }
+    } catch (e) {}
+    return [];
   });
 
   useEffect(() => {

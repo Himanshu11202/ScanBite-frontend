@@ -39,6 +39,7 @@ export default function CustomerCheckoutPage() {
   const [cvc, setCvc] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
+  const [hasSavedTable, setHasSavedTable] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -48,6 +49,9 @@ export default function CustomerCheckoutPage() {
       setName(savedName);
       setPhone(savedPhone);
       setTableNumber(savedTable);
+      if (savedTable) {
+        setHasSavedTable(true);
+      }
     }
   }, []);
 
@@ -73,8 +77,8 @@ export default function CustomerCheckoutPage() {
 
     setSubmitting(true);
     try {
-      const cafeIdStr = sessionStorage.getItem('sb_customer_cafeId');
-      const tableNum = sessionStorage.getItem('sb_customer_tableNumber') || tableNumber;
+      const cafeIdStr = typeof window !== 'undefined' ? sessionStorage.getItem('sb_customer_cafeId') : null;
+      const tableNum = (typeof window !== 'undefined' ? sessionStorage.getItem('sb_customer_tableNumber') : null) || tableNumber;
       
       if (!cafeIdStr || !tableNum) {
         throw new Error('Cafe or table details missing. Please re-scan the QR code.');
@@ -125,7 +129,9 @@ export default function CustomerCheckoutPage() {
       }
 
       // Store guest token so further requests use it
-      localStorage.setItem('sb_token', token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sb_token', token);
+      }
 
       // Validate token to retrieve customer database ID
       const valRes = await api.get<ValidateResponse>('/auth/validate', {
@@ -189,7 +195,7 @@ export default function CustomerCheckoutPage() {
             </div>
             <div>
               <label className="mb-2 block text-sm text-white/70">Table Number</label>
-              <Input placeholder="e.g. 5" value={tableNumber} disabled={!!sessionStorage.getItem('sb_customer_tableNumber')} onChange={(e) => setTableNumber(e.target.value)} />
+              <Input placeholder="e.g. 5" value={tableNumber} disabled={hasSavedTable} onChange={(e) => setTableNumber(e.target.value)} />
             </div>
             <hr className="border-white/10" />
             <h3 className="text-lg font-semibold text-white">Mock Payment details</h3>

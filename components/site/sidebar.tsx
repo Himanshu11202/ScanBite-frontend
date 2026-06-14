@@ -16,11 +16,8 @@ const icons = {
   Settings: Settings
 };
 
-export function Sidebar() {
+export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = usePathname();
-
-  // Sidebar can be collapsed by parent via data attribute on documentElement
-  const collapsed = typeof window !== 'undefined' && document.documentElement.dataset.sbCollapsed === 'true';
 
   return (
     <aside

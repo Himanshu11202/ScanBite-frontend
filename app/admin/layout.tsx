@@ -89,7 +89,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       />
 
       <div className="mx-auto flex min-h-screen max-w-[1700px] overflow-hidden bg-black/20">
-        <Sidebar />
+        <Sidebar collapsed={collapsed} />
         <main className="flex-1 px-4 py-6 lg:px-8">{children}</main>
       </div>
     </div>
