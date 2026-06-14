@@ -128,8 +128,8 @@ export function TableManager() {
     }
     const url = getFullQrUrl(t.qrCodeUrl);
     try {
-      const res = await fetch(url);
-      const blob = await res.blob();
+      const res = await api.get<Blob>(url, { responseType: 'blob' });
+      const blob = res.data;
       const a = document.createElement('a');
       const objectUrl = URL.createObjectURL(blob);
       a.href = objectUrl;

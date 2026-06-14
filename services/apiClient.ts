@@ -1,19 +1,17 @@
-import axios from 'axios';
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://scanbite-backend.onrender.com',
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
-    'Content-Type': 'application/json'
+    "Content-Type": "application/json",
   },
-  timeout: 10000
+  timeout: 20000,
 });
 
+// ONLY JWT attach (NO URL modification)
 api.interceptors.request.use((config) => {
-  if (config.url && !config.url.startsWith('/api') && !config.url.startsWith('http')) {
-    config.url = `/api${config.url}`;
-  }
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('sb_token');
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("sb_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
