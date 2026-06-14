@@ -1,0 +1,51 @@
+
+> scanbite@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.5
+  - Local:        http://localhost:3000
+  - Experiments (use with caution):
+    · typedRoutes
+
+ ✓ Starting...
+ ✓ Ready in 12.6s
+ ○ Compiling / ...
+ ✓ Compiled / in 15s (1231 modules)
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ GET / 200 in 16683ms
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../typescript/lib/typescript' in c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build for build dependencies doesn't lead to expected result 'C:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\typescript\lib\typescript.js', but to 'c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\typescript\lib\typescript.js' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../typescript/lib/typescript (expected C:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\typescript\lib\typescript.js)
+<w>  at file dependencies c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\load-jsconfig.js
+<w>  at file c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\load-jsconfig.js
+<w>  at file dependencies c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\webpack-config.js
+<w>  at file c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\webpack-config.js
+<w>  at file dependencies c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\handle-externals.js
+<w>  at file c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\handle-externals.js
+<w>  at file dependencies c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at file c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at resolve commonjs c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../typescript/lib/typescript' in c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build for build dependencies doesn't lead to expected result 'C:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\typescript\lib\typescript.js', but to 'c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\typescript\lib\typescript.js' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../typescript/lib/typescript (expected C:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\typescript\lib\typescript.js)
+<w>  at file dependencies c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\load-jsconfig.js
+<w>  at file c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\load-jsconfig.js
+<w>  at file dependencies c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\webpack-config.js
+<w>  at file c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\webpack-config.js
+<w>  at file dependencies c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at file c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at resolve commonjs c:\Users\Himanshu patidar\OneDrive\Desktop\Scanbite\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+ ○ Compiling /login ...
+ ✓ Compiled /login in 5.9s (1393 modules)
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ GET /login 200 in 3368ms
+ GET /login 200 in 7453ms
+ ○ Compiling /signup ...
+ ✓ Compiled /signup in 1514ms (1399 modules)
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /signup. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ GET /signup 200 in 2744ms
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
