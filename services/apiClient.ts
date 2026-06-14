@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://scanbite-backend.onrender.com/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://scanbite-backend.onrender.com',
   headers: {
     'Content-Type': 'application/json'
   },
@@ -9,6 +9,9 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  if (config.url && !config.url.startsWith('/api') && !config.url.startsWith('http')) {
+    config.url = `/api${config.url}`;
+  }
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('sb_token');
     if (token) {
