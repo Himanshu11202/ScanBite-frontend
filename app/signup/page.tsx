@@ -28,6 +28,10 @@ const signupSchema = z
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
+interface RegisterResponse {
+  token: string;
+}
+
 export default function SignupPage() {
   const router = useRouter();
   const {
@@ -38,7 +42,7 @@ export default function SignupPage() {
 
   const onSubmit = async (values: SignupFormValues) => {
     try {
-      const response = await api.post('/auth/register', {
+      const response = await api.post<RegisterResponse>('/auth/register', {
         username: values.email,
         email: values.email,
         mobileNumber: values.mobileNumber,
@@ -54,9 +58,15 @@ export default function SignupPage() {
       } else {
         toast.error('Registration completed, but no session token was received.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      const message = typeof err.response?.data === 'string' ? err.response.data : 'Registration failed. Please try again.';
+      let message = 'Registration failed. Please try again.';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const anyErr = err as { response?: { data?: unknown } };
+        if (typeof anyErr.response?.data === 'string') {
+          message = anyErr.response.data;
+        }
+      }
       toast.error(message);
     }
   };

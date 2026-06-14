@@ -20,6 +20,32 @@ interface MenuItem {
   available?: boolean;
 }
 
+interface CafeData {
+  name: string;
+  imageUrl?: string;
+}
+
+interface CategoryData {
+  name: string;
+}
+
+interface BackendItem {
+  id: number;
+  name: string;
+  price: number;
+  description?: string;
+  veg?: boolean;
+  spicy?: number;
+  imageUrl?: string;
+  category?: {
+    name: string;
+  };
+  available?: boolean;
+  cafe?: {
+    id: number;
+  };
+}
+
 export function DigitalMenu() {
   const { addItem } = useCart();
   const [categories, setCategories] = useState<string[]>([]);
@@ -61,7 +87,7 @@ export function DigitalMenu() {
     async function fetchData() {
       try {
         // Fetch Cafe details
-        const cafeRes = await api.get(`/cafes/${cafeId}`);
+        const cafeRes = await api.get<CafeData>(`/cafes/${cafeId}`);
         if (cafeRes.data) {
           setCafeName(cafeRes.data.name);
           if (cafeRes.data.imageUrl) {
@@ -71,14 +97,14 @@ export function DigitalMenu() {
         }
 
         // Fetch categories
-        const catsRes = await api.get(`/menu/categories/cafe/${cafeId}`);
-        setCategories(catsRes.data.map((c: any) => c.name));
+        const catsRes = await api.get<CategoryData[]>(`/menu/categories/cafe/${cafeId}`);
+        setCategories(catsRes.data.map((c) => c.name));
 
         // Fetch menu items
-        const itemsRes = await api.get('/menu');
+        const itemsRes = await api.get<BackendItem[]>('/menu');
         const mapped = itemsRes.data
-          .filter((it: any) => it.cafe?.id === cafeId)
-          .map((it: any) => ({
+          .filter((it) => it.cafe?.id === cafeId)
+          .map((it) => ({
             id: it.id.toString(),
             name: it.name,
             price: it.price,
@@ -180,7 +206,7 @@ export function DigitalMenu() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((it: any) => (
+          {filtered.map((it) => (
             <Card key={it.id} className="overflow-hidden p-0 relative">
               {it.available === false && (
                 <div className="absolute inset-0 bg-black/70 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center text-center p-4">

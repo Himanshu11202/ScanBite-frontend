@@ -27,6 +27,31 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+interface LoginResponse {
+  token: string;
+}
+
+interface ValidateResponse {
+  id: number;
+  username: string;
+  email: string;
+  mobileNumber: string;
+  roles: string[];
+}
+
+interface CafeResponse {
+  id: string;
+  ownerId: number;
+  name: string;
+  description: string;
+  address: string;
+  phone: string;
+  openingTime: string;
+  closingTime: string;
+  totalTables: number;
+  isActive: boolean;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const {
@@ -37,7 +62,7 @@ export default function LoginPage() {
 
   const onSubmit = async (values: LoginFormValues) => {
     try {
-      const response = await api.post('/auth/login', {
+      const response = await api.post<LoginResponse>('/auth/login', {
         username: values.email,
         password: values.password,
       });
@@ -46,16 +71,16 @@ export default function LoginPage() {
         localStorage.setItem('sb_token', token);
         
         // Validate token to retrieve user ID
-        const valRes = await api.get('/auth/validate', {
+        const valRes = await api.get<ValidateResponse>('/auth/validate', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const userId = valRes.data.id;
         
         // Fetch cafes to verify if user has onboarding completed
-        const cafesRes = await api.get('/cafes', {
+        const cafesRes = await api.get<CafeResponse[]>('/cafes', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        const userCafes = cafesRes.data.filter((c: any) => c.ownerId === userId);
+        const userCafes = cafesRes.data.filter((c) => c.ownerId === userId);
         
         toast.success('Logged in successfully!');
         
@@ -67,9 +92,15 @@ export default function LoginPage() {
       } else {
         toast.error('Authentication succeeded, but no session token was received.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      const message = typeof err.response?.data === 'string' ? err.response.data : 'Invalid credentials. Please try again.';
+      let message = 'Invalid credentials. Please try again.';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const anyErr = err as { response?: { data?: unknown } };
+        if (typeof anyErr.response?.data === 'string') {
+          message = anyErr.response.data;
+        }
+      }
       toast.error(message);
     }
   };

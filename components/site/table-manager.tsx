@@ -16,6 +16,15 @@ interface CafeTable {
   qrCodeUrl?: string;
 }
 
+interface ValidateResponse {
+  id: number;
+}
+
+interface CafeResponse {
+  id: number;
+  ownerId: number;
+}
+
 export function TableManager() {
   const [tables, setTables] = useState<CafeTable[]>([]);
   const [cafeId, setCafeId] = useState<number | null>(null);
@@ -26,13 +35,13 @@ export function TableManager() {
   useEffect(() => {
     async function loadData() {
       try {
-        const valRes = await api.get('/auth/validate');
+        const valRes = await api.get<ValidateResponse>('/auth/validate');
         const userId = valRes.data.id;
-        const cafesRes = await api.get('/cafes');
-        const userCafe = cafesRes.data.find((c: any) => c.ownerId === userId);
+        const cafesRes = await api.get<CafeResponse[]>('/cafes');
+        const userCafe = cafesRes.data.find((c) => c.ownerId === userId);
         if (userCafe) {
           setCafeId(userCafe.id);
-          const tablesRes = await api.get(`/tables/cafe/${userCafe.id}`);
+          const tablesRes = await api.get<CafeTable[]>(`/tables/cafe/${userCafe.id}`);
           setTables(tablesRes.data);
         }
       } catch (err) {
@@ -54,19 +63,26 @@ export function TableManager() {
         cafe: { id: cafeId }
       };
       // 1. Create table in DB
-      const res = await api.post('/tables', payload);
+      const res = await api.post<CafeTable>('/tables', payload);
       let newTable = res.data;
       
       // 2. Generate QR code for this table
-      const qrRes = await api.post(`/tables/${newTable.id}/qr`);
+      const qrRes = await api.post<{ qrImageUrl: string }>(`/tables/${newTable.id}/qr`);
       newTable = { ...newTable, qrCodeUrl: qrRes.data.qrImageUrl };
       
       setTables((s) => [newTable, ...s]);
       setLabel('');
       toast.success('Table created and QR generated!');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.response?.data || 'Failed to create table');
+      let message = 'Failed to create table';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const anyErr = err as { response?: { data?: unknown } };
+        if (typeof anyErr.response?.data === 'string') {
+          message = anyErr.response.data;
+        }
+      }
+      toast.error(message);
     }
   }
 
@@ -85,7 +101,7 @@ export function TableManager() {
   async function toggleStatus(t: CafeTable) {
     const nextSt = t.status === 'AVAILABLE' ? 'OCCUPIED' : t.status === 'OCCUPIED' ? 'RESERVED' : 'AVAILABLE';
     try {
-      const res = await api.put(`/tables/${t.id}/status?status=${nextSt}`);
+      const res = await api.put<CafeTable>(`/tables/${t.id}/status?status=${nextSt}`);
       setTables((s) => s.map((x) => x.id === t.id ? res.data : x));
       toast.success(`Table status updated to ${nextSt}`);
     } catch (err) {

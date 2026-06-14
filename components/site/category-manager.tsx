@@ -9,12 +9,27 @@ import { Edit3, Trash2, Plus, Move } from 'lucide-react';
 import api from '@/services/apiClient';
 import { toast } from 'sonner';
 
+interface ValidateResponse {
+  id: number;
+}
+
+interface CafeResponse {
+  id: number;
+  ownerId: number;
+}
+
+interface CategoryItem {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 export function CategoryManager() {
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [cafeId, setCafeId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [editing, setEditing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<CategoryItem | null>(null);
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -23,13 +38,13 @@ export function CategoryManager() {
   useEffect(() => {
     async function loadData() {
       try {
-        const valRes = await api.get('/auth/validate');
+        const valRes = await api.get<ValidateResponse>('/auth/validate');
         const userId = valRes.data.id;
-        const cafesRes = await api.get('/cafes');
-        const userCafe = cafesRes.data.find((c: any) => c.ownerId === userId);
+        const cafesRes = await api.get<CafeResponse[]>('/cafes');
+        const userCafe = cafesRes.data.find((c) => c.ownerId === userId);
         if (userCafe) {
           setCafeId(userCafe.id);
-          const catsRes = await api.get(`/menu/categories/cafe/${userCafe.id}`);
+          const catsRes = await api.get<CategoryItem[]>(`/menu/categories/cafe/${userCafe.id}`);
           setCategories(catsRes.data);
         } else {
           toast.error('Please onboard a cafe location first');
@@ -53,7 +68,7 @@ export function CategoryManager() {
     if (!name.trim() || !cafeId) return;
     try {
       if (editing && editing.id) {
-        const res = await api.put(`/menu/categories/${editing.id}`, {
+        const res = await api.put<CategoryItem>(`/menu/categories/${editing.id}`, {
           id: editing.id,
           name: name.trim(),
           description: desc,
@@ -62,7 +77,7 @@ export function CategoryManager() {
         setCategories((c) => c.map((cat) => (cat.id === editing.id ? res.data : cat)));
         toast.success('Category updated!');
       } else {
-        const res = await api.post('/menu/categories', {
+        const res = await api.post<CategoryItem>('/menu/categories', {
           name: name.trim(),
           description: desc,
           cafe: { id: cafeId }
@@ -77,13 +92,13 @@ export function CategoryManager() {
     }
   }
 
-  function editCategory(cat: any) {
+  function editCategory(cat: CategoryItem) {
     setEditing(cat);
     setName(cat.name);
     setDesc(cat.description || '');
   }
 
-  async function deleteCategory(id: any) {
+  async function deleteCategory(id: string) {
     if (!confirm('Delete this category?')) return;
     try {
       await api.delete(`/menu/categories/${id}`);

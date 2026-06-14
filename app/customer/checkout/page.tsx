@@ -9,6 +9,23 @@ import { Input } from '@/components/ui/input';
 import api from '@/services/apiClient';
 import { toast } from 'sonner';
 
+interface TableItem {
+  id: number;
+  tableNumber: string;
+}
+
+interface AuthResponse {
+  token: string;
+}
+
+interface ValidateResponse {
+  id: number;
+}
+
+interface OrderResponse {
+  id: string;
+}
+
 export default function CustomerCheckoutPage() {
   const router = useRouter();
   const { items, total, setQty, removeItem, clear } = useCart();
@@ -64,9 +81,9 @@ export default function CustomerCheckoutPage() {
       }
       
       // 1. Resolve tableNumber to tableId
-      const tablesRes = await api.get(`/tables/cafe/${cafeIdStr}`);
+      const tablesRes = await api.get<TableItem[]>(`/tables/cafe/${cafeIdStr}`);
       const matchedTable = tablesRes.data.find(
-        (t: any) => t.tableNumber.toString().trim() === tableNum.toString().trim()
+        (t) => t.tableNumber.toString().trim() === tableNum.toString().trim()
       );
       
       if (!matchedTable) {
@@ -74,19 +91,26 @@ export default function CustomerCheckoutPage() {
       }
 
       // 2. Register/Login Guest Customer
-      let token = null;
+      let token: string | null = null;
       try {
-        const regRes = await api.post('/auth/register', {
+        const regRes = await api.post<AuthResponse>('/auth/register', {
           username: phone.trim(),
           password: phone.trim(),
           fullName: name.trim(),
           role: 'CUSTOMER'
         });
         token = regRes.data.token;
-      } catch (err: any) {
+      } catch (err: unknown) {
         // If username exists, login instead
-        if (err.response?.status === 400 || err.response?.data === 'Username exists') {
-          const loginRes = await api.post('/auth/login', {
+        let isUsernameExists = false;
+        if (err && typeof err === 'object' && 'response' in err) {
+          const anyErr = err as { response?: { status?: number; data?: unknown } };
+          if (anyErr.response?.status === 400 || anyErr.response?.data === 'Username exists') {
+            isUsernameExists = true;
+          }
+        }
+        if (isUsernameExists) {
+          const loginRes = await api.post<AuthResponse>('/auth/login', {
             username: phone.trim(),
             password: phone.trim()
           });
@@ -104,7 +128,7 @@ export default function CustomerCheckoutPage() {
       localStorage.setItem('sb_token', token);
 
       // Validate token to retrieve customer database ID
-      const valRes = await api.get('/auth/validate', {
+      const valRes = await api.get<ValidateResponse>('/auth/validate', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const customerId = valRes.data.id;
@@ -119,7 +143,7 @@ export default function CustomerCheckoutPage() {
         }))
       };
 
-      const orderRes = await api.post('/orders', orderPayload);
+      const orderRes = await api.post<OrderResponse>('/orders', orderPayload);
       const savedOrder = orderRes.data;
 
       // Clean cart
@@ -128,9 +152,18 @@ export default function CustomerCheckoutPage() {
       
       // Redirect to success page
       router.push(`/checkout/success?orderId=${savedOrder.id}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.message || err.response?.data || 'Failed to place order.');
+      let errMsg = 'Failed to place order.';
+      if (err instanceof Error) {
+        errMsg = err.message;
+      } else if (err && typeof err === 'object' && 'response' in err) {
+        const anyErr = err as { response?: { data?: unknown } };
+        if (typeof anyErr.response?.data === 'string') {
+          errMsg = anyErr.response.data;
+        }
+      }
+      toast.error(errMsg);
     } finally {
       setSubmitting(false);
     }

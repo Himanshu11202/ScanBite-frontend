@@ -7,6 +7,15 @@ import { AdminTopnav } from '@/components/site/admin-topnav';
 import { useRouter, usePathname } from 'next/navigation';
 import api from '@/services/apiClient';
 
+interface ValidateResponse {
+  id: number;
+  username: string;
+}
+
+interface CafeResponse {
+  ownerId: number;
+}
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -29,13 +38,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       try {
         // Validate token
-        const valRes = await api.get('/auth/validate');
+        const valRes = await api.get<ValidateResponse>('/auth/validate');
         const user = valRes.data;
         setUserEmail(user.username);
 
         // Fetch cafes to verify cafe ownership
-        const cafesRes = await api.get('/cafes');
-        const hasCafe = cafesRes.data.some((c: any) => c.ownerId === user.id);
+        const cafesRes = await api.get<CafeResponse[]>('/cafes');
+        const hasCafe = cafesRes.data.some((c) => c.ownerId === user.id);
 
         if (!hasCafe) {
           if (pathname !== '/admin/cafe/onboarding') {

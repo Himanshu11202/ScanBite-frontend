@@ -22,6 +22,15 @@ type StoredOrder = {
   createdAt: string;
 };
 
+interface ValidateResponse {
+  id: number;
+}
+
+interface CafeResponse {
+  id: number;
+  ownerId: number;
+}
+
 export default function AdminBillingPage() {
   const [orders, setOrders] = useState<StoredOrder[]>([]);
   const [cafeId, setCafeId] = useState<number | null>(null);
@@ -31,10 +40,10 @@ export default function AdminBillingPage() {
   useEffect(() => {
     async function loadCafe() {
       try {
-        const valRes = await api.get('/auth/validate');
+        const valRes = await api.get<ValidateResponse>('/auth/validate');
         const userId = valRes.data.id;
-        const cafesRes = await api.get('/cafes');
-        const userCafe = cafesRes.data.find((c: any) => c.ownerId === userId);
+        const cafesRes = await api.get<CafeResponse[]>('/cafes');
+        const userCafe = cafesRes.data.find((c) => c.ownerId === userId);
         if (userCafe) {
           setCafeId(userCafe.id);
         }
@@ -53,8 +62,8 @@ export default function AdminBillingPage() {
 
     async function fetchOrders() {
       try {
-        const res = await api.get(`/orders?cafeId=${cafeId}`);
-        setOrders(res.data.sort((a: any, b: any) => b.createdAt.localeCompare(a.createdAt)));
+        const res = await api.get<StoredOrder[]>(`/orders?cafeId=${cafeId}`);
+        setOrders(res.data.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
       } catch (err) {
         console.error('Failed to fetch invoices:', err);
       }

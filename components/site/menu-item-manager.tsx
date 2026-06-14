@@ -33,13 +33,46 @@ async function fileToDataUrl(file: File): Promise<string> {
 import api from '@/services/apiClient';
 import { toast } from 'sonner';
 
+interface ValidateResponse {
+  id: number;
+}
+
+interface CafeResponse {
+  id: number;
+  ownerId: number;
+}
+
+interface CategoryItem {
+  id: number;
+  name: string;
+}
+
+interface MenuItemData {
+  id: number;
+  name: string;
+  price: number;
+  description?: string;
+  veg: boolean;
+  spicy?: number;
+  imageUrl?: string;
+  image?: string;
+  category?: {
+    id: number;
+    name: string;
+  };
+  available?: boolean;
+  cafe?: {
+    id: number;
+  };
+}
+
 export function MenuItemManager() {
-  const [items, setItems] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [items, setItems] = useState<MenuItemData[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [cafeId, setCafeId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [editing, setEditing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<MenuItemData | null>(null);
   const [name, setName] = useState('');
   const [price, setPrice] = useState<number | ''>('');
   const [description, setDescription] = useState('');
@@ -56,20 +89,20 @@ export function MenuItemManager() {
   useEffect(() => {
     async function loadData() {
       try {
-        const valRes = await api.get('/auth/validate');
+        const valRes = await api.get<ValidateResponse>('/auth/validate');
         const userId = valRes.data.id;
-        const cafesRes = await api.get('/cafes');
-        const userCafe = cafesRes.data.find((c: any) => c.ownerId === userId);
+        const cafesRes = await api.get<CafeResponse[]>('/cafes');
+        const userCafe = cafesRes.data.find((c) => c.ownerId === userId);
         if (userCafe) {
           setCafeId(userCafe.id);
           
           // Load items
-          const itemsRes = await api.get('/menu');
-          const filteredItems = itemsRes.data.filter((it: any) => it.cafe?.id === userCafe.id);
+          const itemsRes = await api.get<MenuItemData[]>('/menu');
+          const filteredItems = itemsRes.data.filter((it) => it.cafe?.id === userCafe.id);
           setItems(filteredItems);
 
           // Load categories
-          const catsRes = await api.get(`/menu/categories/cafe/${userCafe.id}`);
+          const catsRes = await api.get<CategoryItem[]>(`/menu/categories/cafe/${userCafe.id}`);
           setCategories(catsRes.data);
         }
       } catch (err) {
@@ -110,7 +143,7 @@ export function MenuItemManager() {
     }
 
     try {
-      const payload: any = {
+      const payload = {
         name: name.trim(),
         price: Number(price),
         description,
@@ -121,15 +154,15 @@ export function MenuItemManager() {
         available: available
       };
 
-      let savedItem: any = null;
+      let savedItem: MenuItemData | null = null;
       if (editing && editing.id) {
         // Update
-        const res = await api.put(`/menu/${editing.id}`, payload);
+        const res = await api.put<MenuItemData>(`/menu/${editing.id}`, payload);
         savedItem = res.data;
         toast.success('Dish updated successfully!');
       } else {
         // Create
-        const res = await api.post('/menu', payload);
+        const res = await api.post<MenuItemData>('/menu', payload);
         savedItem = res.data;
         toast.success('Dish added successfully!');
       }
@@ -138,7 +171,7 @@ export function MenuItemManager() {
       if (imageFile && savedItem && savedItem.id) {
         const formData = new FormData();
         formData.append('file', imageFile);
-        const imgRes = await api.post(`/menu/${savedItem.id}/image`, formData, {
+        const imgRes = await api.post<MenuItemData>(`/menu/${savedItem.id}/image`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         savedItem = imgRes.data;
@@ -146,9 +179,9 @@ export function MenuItemManager() {
 
       // Update local state list
       if (editing && editing.id) {
-        setItems((s) => s.map((it) => it.id === editing.id ? savedItem : it));
+        setItems((s) => s.map((it) => it.id === editing.id ? savedItem! : it));
       } else {
-        setItems((s) => [savedItem, ...s]);
+        setItems((s) => [savedItem!, ...s]);
       }
 
       setEditing(null);
@@ -167,7 +200,7 @@ export function MenuItemManager() {
     setName(''); setPrice(''); setDescription(''); setIsVeg(true); setSpicy(0); setSelectedCatId(''); setImagePreview(undefined); setImageFile(null);
   }
 
-  function editItem(it: any) {
+  function editItem(it: MenuItemData) {
     setEditing(it);
   }
 
@@ -252,7 +285,7 @@ export function MenuItemManager() {
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dish name" />
 
               <label className="text-sm text-white/70">Price</label>
-              <Input type="number" value={price as any} onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))} placeholder="0.00" />
+              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))} placeholder="0.00" />
 
               <label className="text-sm text-white/70">Category</label>
               <select

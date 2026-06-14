@@ -4,16 +4,36 @@ import React, { useState, useEffect } from 'react';
 import { DashboardOverview } from '@/features/dashboard/overview';
 import api from '@/services/apiClient';
 
+interface ValidateResponse {
+  id: number;
+  username: string;
+}
+
+interface CafeDetails {
+  id: string;
+  name: string;
+  description: string;
+  address: string;
+  phone: string;
+  openingTime: string;
+  closingTime: string;
+  totalTables: number;
+  isActive: boolean;
+  ownerId: number;
+  coverPhotos?: string;
+  imageUrl?: string;
+}
+
 export default function AdminDashboardPage() {
-  const [cafe, setCafe] = useState<any>(null);
+  const [cafe, setCafe] = useState<CafeDetails | null>(null);
 
   useEffect(() => {
     async function loadCafe() {
       try {
-        const valRes = await api.get('/auth/validate');
+        const valRes = await api.get<ValidateResponse>('/auth/validate');
         const userId = valRes.data.id;
-        const cafesRes = await api.get('/cafes');
-        const userCafe = cafesRes.data.find((c: any) => c.ownerId === userId);
+        const cafesRes = await api.get<CafeDetails[]>('/cafes');
+        const userCafe = cafesRes.data.find((c) => c.ownerId === userId);
         if (userCafe) {
           setCafe(userCafe);
         }

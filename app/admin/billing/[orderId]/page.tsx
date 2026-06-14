@@ -8,21 +8,60 @@ import { Card } from '@/components/ui/card';
 import api from '@/services/apiClient';
 import { toast } from 'sonner';
 
+interface BackendItem {
+  id: number;
+  name: string;
+  qty: number;
+  price: number;
+}
+
+interface BackendOrder {
+  id: number;
+  items: BackendItem[];
+  subtotal: number;
+  customerName?: string;
+  customerPhone?: string;
+  table?: {
+    tableNumber: string;
+  };
+  paid: boolean;
+  createdAt: string;
+}
+
+interface MappedOrder {
+  id: string;
+  items: Array<{
+    id: string;
+    name: string;
+    qty: number;
+    price: number;
+  }>;
+  subtotal: number;
+  customer: {
+    name: string;
+    phone: string;
+    table: string;
+    instructions: string;
+  };
+  paid: boolean;
+  createdAt: string;
+}
+
 export default function BillingOrderPage() {
   const params = useParams();
   const router = useRouter();
   const { orderId } = params as { orderId: string };
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<MappedOrder | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadOrder() {
       try {
-        const res = await api.get(`/orders/${orderId}`);
+        const res = await api.get<BackendOrder>(`/orders/${orderId}`);
         const backendOrder = res.data;
-        const mapped = {
+        const mapped: MappedOrder = {
           id: backendOrder.id.toString(),
-          items: backendOrder.items.map((it: any) => ({
+          items: backendOrder.items.map((it) => ({
             id: it.id.toString(),
             name: it.name,
             qty: it.qty,
@@ -52,11 +91,11 @@ export default function BillingOrderPage() {
   async function togglePaid() {
     if (!order) return;
     try {
-      const res = await api.put(`/orders/${order.id}/paid?paid=${!order.paid}`);
+      const res = await api.put<BackendOrder>(`/orders/${order.id}/paid?paid=${!order.paid}`);
       const backendOrder = res.data;
-      const mapped = {
+      const mapped: MappedOrder = {
         id: backendOrder.id.toString(),
-        items: backendOrder.items.map((it: any) => ({
+        items: backendOrder.items.map((it) => ({
           id: it.id.toString(),
           name: it.name,
           qty: it.qty,

@@ -24,6 +24,14 @@ const cafeSchema = z.object({
 
 type CafeForm = z.infer<typeof cafeSchema>;
 
+interface ValidateResponse {
+  id: number;
+}
+
+interface CafeResponse {
+  id: number;
+}
+
 export function CafeOnboarding() {
   const router = useRouter();
   const {
@@ -60,9 +68,9 @@ export function CafeOnboarding() {
 
   const onSubmit = async (data: CafeForm) => {
     try {
-      const valRes = await api.get('/auth/validate');
+      const valRes = await api.get<ValidateResponse>('/auth/validate');
       const ownerId = valRes.data.id;
-      const response = await api.post('/cafes', {
+      const response = await api.post<CafeResponse>('/cafes', {
         name: data.cafeName,
         address: data.address,
         phone: data.phone,
@@ -92,9 +100,15 @@ export function CafeOnboarding() {
       }
       toast.success('Restaurant onboarding completed!');
       router.push('/admin/dashboard');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      const message = typeof err.response?.data === 'string' ? err.response.data : 'Onboarding failed. Please try again.';
+      let message = 'Onboarding failed. Please try again.';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const anyErr = err as { response?: { data?: unknown } };
+        if (typeof anyErr.response?.data === 'string') {
+          message = anyErr.response.data;
+        }
+      }
       toast.error(message);
     }
   };

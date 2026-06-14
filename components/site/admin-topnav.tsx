@@ -7,6 +7,16 @@ import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import api from '@/services/apiClient';
 
+interface ValidateResponse {
+  id: number;
+}
+
+interface CafeDetails {
+  name: string;
+  imageUrl?: string;
+  ownerId: number;
+}
+
 export function AdminTopnav({ 
   collapsed, 
   onToggle, 
@@ -16,15 +26,15 @@ export function AdminTopnav({
   onToggle: () => void; 
   userEmail?: string;
 }) {
-  const [cafe, setCafe] = useState<any>(null);
+  const [cafe, setCafe] = useState<CafeDetails | null>(null);
 
   useEffect(() => {
     async function loadCafe() {
       try {
-        const valRes = await api.get('/auth/validate');
+        const valRes = await api.get<ValidateResponse>('/auth/validate');
         const userId = valRes.data.id;
-        const cafesRes = await api.get('/cafes');
-        const userCafe = cafesRes.data.find((c: any) => c.ownerId === userId);
+        const cafesRes = await api.get<CafeDetails[]>('/cafes');
+        const userCafe = cafesRes.data.find((c) => c.ownerId === userId);
         if (userCafe) {
           setCafe(userCafe);
         }

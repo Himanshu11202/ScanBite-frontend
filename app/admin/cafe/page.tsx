@@ -16,6 +16,10 @@ interface CafeItem {
   ownerId: number;
 }
 
+interface ValidateResponse {
+  id: number;
+}
+
 export default function AdminCafePage() {
   const [cafes, setCafes] = useState<CafeItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,10 +27,10 @@ export default function AdminCafePage() {
   useEffect(() => {
     async function load() {
       try {
-        const valRes = await api.get('/auth/validate');
+        const valRes = await api.get<ValidateResponse>('/auth/validate');
         const userId = valRes.data.id;
-        const res = await api.get('/cafes');
-        const list = res.data.filter((c: any) => c.ownerId === userId);
+        const res = await api.get<CafeItem[]>('/cafes');
+        const list = res.data.filter((c) => c.ownerId === userId);
         setCafes(list);
       } catch (e) {
         console.error('Failed to load cafes:', e);

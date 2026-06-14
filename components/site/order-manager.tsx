@@ -28,9 +28,20 @@ interface Order {
   createdAt: string;
 }
 
+interface ValidateResponse {
+  id: number;
+}
+
+interface CafeResponse {
+  id: number;
+  ownerId: number;
+}
+
 function playBeep() {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.type = 'sine';
@@ -56,10 +67,10 @@ export function OrderManager() {
   useEffect(() => {
     async function loadCafe() {
       try {
-        const valRes = await api.get('/auth/validate');
+        const valRes = await api.get<ValidateResponse>('/auth/validate');
         const userId = valRes.data.id;
-        const cafesRes = await api.get('/cafes');
-        const userCafe = cafesRes.data.find((c: any) => c.ownerId === userId);
+        const cafesRes = await api.get<CafeResponse[]>('/cafes');
+        const userCafe = cafesRes.data.find((c) => c.ownerId === userId);
         if (userCafe) {
           setCafeId(userCafe.id);
         }
@@ -78,8 +89,8 @@ export function OrderManager() {
 
     async function fetchOrders() {
       try {
-        const res = await api.get(`/orders?cafeId=${cafeId}`);
-        const list: Order[] = res.data.sort((a: any, b: any) => b.createdAt.localeCompare(a.createdAt));
+        const res = await api.get<Order[]>(`/orders?cafeId=${cafeId}`);
+        const list: Order[] = res.data.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
         setOrders(list);
       } catch (err) {
         console.error('Failed to poll orders:', err);

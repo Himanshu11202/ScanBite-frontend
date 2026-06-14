@@ -18,6 +18,15 @@ interface ScannedItem {
   description: string;
 }
 
+interface ValidateResponse {
+  id: number;
+}
+
+interface CafeResponse {
+  id: number;
+  ownerId: number;
+}
+
 export default function AdminMenuPage() {
   const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai');
   const [cafeId, setCafeId] = useState<number | null>(null);
@@ -31,10 +40,10 @@ export default function AdminMenuPage() {
   useEffect(() => {
     async function loadCafe() {
       try {
-        const valRes = await api.get('/auth/validate');
+        const valRes = await api.get<ValidateResponse>('/auth/validate');
         const userId = valRes.data.id;
-        const cafesRes = await api.get('/cafes');
-        const userCafe = cafesRes.data.find((c: any) => c.ownerId === userId);
+        const cafesRes = await api.get<CafeResponse[]>('/cafes');
+        const userCafe = cafesRes.data.find((c) => c.ownerId === userId);
         if (userCafe) {
           setCafeId(userCafe.id);
         }
@@ -63,16 +72,20 @@ export default function AdminMenuPage() {
     }
 
     try {
-      const response = await api.post('/menu/scan', formData, {
+      const response = await api.post<ScannedItem[]>('/menu/scan', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setScannedItems(response.data);
       toast.success('Menu scanned successfully!');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      const errMsg = typeof err.response?.data === 'string' 
-        ? err.response.data 
-        : 'AI extraction failed. The photo was too blurry or lacked contrast.';
+      let errMsg = 'AI extraction failed. The photo was too blurry or lacked contrast.';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const anyErr = err as { response?: { data?: unknown } };
+        if (typeof anyErr.response?.data === 'string') {
+          errMsg = anyErr.response.data;
+        }
+      }
       setScanError(errMsg);
       toast.error('AI Scan failed. Please input items manually.');
       // Initialize with one empty row for manual entry
@@ -91,9 +104,9 @@ export default function AdminMenuPage() {
     setScannedItems(scannedItems.filter((_, i) => i !== index));
   };
 
-  const handleFieldChange = (index: number, field: keyof ScannedItem, value: any) => {
+  const handleFieldChange = (index: number, field: keyof ScannedItem, value: string | number | boolean) => {
     const updated = [...scannedItems];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = { ...updated[index], [field]: value } as ScannedItem;
     setScannedItems(updated);
   };
 
