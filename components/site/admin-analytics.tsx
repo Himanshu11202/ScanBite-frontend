@@ -28,8 +28,8 @@ interface OrderEntity {
 }
 
 interface AdminAnalyticsProps {
-  orders: OrderEntity[];
-  totalTables: number;
+  orders?: OrderEntity[];
+  totalTables?: number;
 }
 
 export function AdminAnalytics({ orders = [], totalTables = 10 }: AdminAnalyticsProps) {

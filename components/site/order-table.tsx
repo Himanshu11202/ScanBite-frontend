@@ -29,7 +29,7 @@ interface OrderEntity {
 }
 
 interface OrderTableProps {
-  orders: OrderEntity[];
+  orders?: OrderEntity[];
 }
 
 export function OrderTable({ orders = [] }: OrderTableProps) {
