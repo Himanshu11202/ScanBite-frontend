@@ -4,9 +4,11 @@ import React from 'react';
 import { useCart } from './cart-context';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
 
 export function StickyCart() {
   const { items, total, setQty, removeItem, clear } = useCart();
+  const router = useRouter();
 
   return (
     <div className="fixed bottom-4 right-4 z-50 w-full max-w-sm sm:relative sm:bottom-auto sm:right-auto sm:max-w-none">
@@ -18,7 +20,7 @@ export function StickyCart() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" onClick={() => clear()}>Clear</Button>
-            <Button onClick={() => alert('Checkout flow not implemented')} className="bg-amber-500 text-black">Checkout</Button>
+            <Button onClick={() => router.push('/customer/checkout')} className="bg-amber-500 text-black font-semibold">Checkout</Button>
           </div>
         </div>
 

@@ -3,149 +3,260 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
-import { AnalyticsStat } from '@/types';
-import { ArrowUpRight, Clock, CreditCard, Users } from 'lucide-react';
+import { ArrowUpRight, TrendingUp, CreditCard, Users, Landmark, Clock } from 'lucide-react';
 
-const stats: AnalyticsStat[] = [
-  { label: 'Total orders', value: '12,482', change: '+6%', trend: 'up' },
-  { label: 'Total revenue', value: '$124,820', change: '+8%', trend: 'up' },
-  { label: 'Active tables', value: '72', change: '+3%', trend: 'up' },
-  { label: 'Pending bills', value: '18', change: '-4%', trend: 'down' }
-];
+interface OrderItem {
+  id: number;
+  name: string;
+  price: number;
+  qty: number;
+}
 
-const recentOrders = [
-  { id: 'ORD-10234', table: 'T12', items: 3, total: '$24.90', status: 'Preparing', time: '2m ago' },
-  { id: 'ORD-10233', table: 'T04', items: 2, total: '$12.50', status: 'Served', time: '5m ago' },
-  { id: 'ORD-10232', table: 'T07', items: 1, total: '$8.00', status: 'Pending', time: '8m ago' },
-  { id: 'ORD-10231', table: 'T01', items: 4, total: '$45.20', status: 'Preparing', time: '12m ago' }
-];
+interface OrderEntity {
+  id: number;
+  customerName?: string;
+  customerPhone?: string;
+  status: string;
+  paid: boolean;
+  subtotal: number;
+  total: number;
+  createdAt: string;
+  table?: {
+    id: number;
+    tableNumber: string;
+  };
+}
 
-function Sparkline({ data, color = 'currentColor' }: { data: number[]; color?: string }) {
-  const width = 120;
-  const height = 36;
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const points = data
-    .map((d, i) => {
-      const x = (i / (data.length - 1)) * width;
-      const y = max === min ? height / 2 : height - ((d - min) / (max - min)) * height;
-      return `${x},${y}`;
-    })
-    .join(' ');
+interface AdminAnalyticsProps {
+  orders: OrderEntity[];
+  totalTables: number;
+}
+
+export function AdminAnalytics({ orders = [], totalTables = 10 }: AdminAnalyticsProps) {
+  // 1. Calculate live statistics
+  const totalOrdersCount = orders.length;
+  
+  const totalRevenue = orders
+    .filter(o => o.paid && o.status !== 'CANCELLED')
+    .reduce((sum, o) => sum + o.total, 0);
+
+  // Active tables: tables that currently have active (pending, preparing) orders
+  const activeTablesCount = new Set(
+    orders
+      .filter(o => o.status !== 'SERVED' && o.status !== 'CANCELLED' && o.table)
+      .map(o => o.table?.id)
+  ).size;
+
+  const pendingBillsCount = orders.filter(o => !o.paid && o.status !== 'CANCELLED').length;
+
+  const stats = [
+    { 
+      label: 'Total Orders', 
+      value: totalOrdersCount.toLocaleString(), 
+      change: 'Real-time sync', 
+      icon: ShoppingBagIcon 
+    },
+    { 
+      label: 'Gross Revenue', 
+      value: `$${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+      change: 'Settled payments', 
+      icon: CreditCard 
+    },
+    { 
+      label: 'Active Tables', 
+      value: `${activeTablesCount} / ${totalTables}`, 
+      change: `Occupancy: ${totalTables > 0 ? Math.round((activeTablesCount / totalTables) * 100) : 0}%`, 
+      icon: Users 
+    },
+    { 
+      label: 'Pending Settlements', 
+      value: pendingBillsCount.toString(), 
+      change: 'Awaiting billing', 
+      icon: Clock 
+    }
+  ];
+
+  // 2. Compute dynamic chart data for the last 7 days
+  const getDailyRevenueData = () => {
+    const dailyMap: { [key: string]: number } = {};
+    
+    // Initialize last 7 days with 0
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateString = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      dailyMap[dateString] = 0;
+    }
+
+    // Accumulate paid order values
+    orders.forEach(o => {
+      if (o.paid && o.status !== 'CANCELLED') {
+        const orderDate = new Date(o.createdAt);
+        const dateString = orderDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        if (dateString in dailyMap) {
+          dailyMap[dateString] += o.total;
+        }
+      }
+    });
+
+    return Object.entries(dailyMap).map(([label, value]) => ({ label, value }));
+  };
+
+  const chartData = getDailyRevenueData();
+  const maxRevenueVal = Math.max(...chartData.map(d => d.value), 10);
+
+  // Construct SVG Area Chart Points
+  const svgWidth = 500;
+  const svgHeight = 150;
+  const points = chartData.map((d, idx) => {
+    const x = (idx / (chartData.length - 1)) * svgWidth;
+    const y = svgHeight - (d.value / maxRevenueVal) * (svgHeight - 20); // leave padding at top
+    return `${x},${y}`;
+  });
+
+  const areaPoints = `${points.length > 0 ? `0,${svgHeight} ` : ''}${points.join(' ')} ${svgWidth},${svgHeight}`;
+  const pathData = points.length > 0 ? `M ${points.join(' L ')}` : '';
 
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} fill="none" xmlns="http://www.w3.org/2000/svg">
-      <polyline points={points} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <div className="space-y-6">
+      {/* 4 Stats Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map((s, idx) => {
+          const Icon = s.icon;
+          return (
+            <motion.div 
+              key={s.label} 
+              initial={{ opacity: 0, y: 12 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ duration: 0.4, delay: idx * 0.05 }}
+            >
+              <Card className="relative overflow-hidden border-white/[0.08] bg-zinc-900/40 p-5 md:p-6 backdrop-blur-md">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                      {s.label}
+                    </span>
+                    <h3 className="mt-2 text-2xl font-bold tracking-tight text-white">
+                      {s.value}
+                    </h3>
+                    <p className="mt-1.5 text-xs font-medium text-zinc-500">
+                      {s.change}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-white/5 p-3 text-amber-400">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Charts section */}
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* 7-Day Revenue Trend */}
+        <Card className="md:col-span-2 border-white/[0.08] bg-zinc-900/40 p-6 backdrop-blur-md">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Revenue Stream</span>
+              <h4 className="text-lg font-bold text-white mt-1">7-Day Financial Performance</h4>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
+              <TrendingUp className="h-3.5 w-3.5" />
+              Live Sync
+            </div>
+          </div>
+
+          <div className="h-44 w-full relative">
+            {maxRevenueVal === 10 && orders.length === 0 ? (
+              <div className="absolute inset-0 flex items-center justify-center text-sm text-zinc-500 font-medium">
+                No revenue records generated in the last 7 days
+              </div>
+            ) : (
+              <svg 
+                viewBox={`0 0 ${svgWidth} ${svgHeight}`} 
+                className="h-full w-full overflow-visible"
+                preserveAspectRatio="none"
+              >
+                <defs>
+                  <linearGradient id="revenueGlow" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+                {/* Grid Lines */}
+                <line x1="0" y1={svgHeight * 0.25} x2={svgWidth} y2={svgHeight * 0.25} stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+                <line x1="0" y1={svgHeight * 0.5} x2={svgWidth} y2={svgHeight * 0.5} stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+                <line x1="0" y1={svgHeight * 0.75} x2={svgWidth} y2={svgHeight * 0.75} stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+                
+                {/* Area Fill */}
+                <path d={areaPoints} fill="url(#revenueGlow)" />
+                
+                {/* Stroke Line */}
+                <path d={pathData} fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </div>
+          
+          {/* Labels */}
+          <div className="flex justify-between text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-4">
+            {chartData.map((d, idx) => (
+              <span key={idx}>{d.label}</span>
+            ))}
+          </div>
+        </Card>
+
+        {/* Occupancy Card */}
+        <Card className="border-white/[0.08] bg-zinc-900/40 p-6 backdrop-blur-md flex flex-col justify-between">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Capacity Metrics</span>
+            <h4 className="text-lg font-bold text-white mt-1">Live Occupancy Status</h4>
+            <p className="text-xs text-zinc-500 mt-1.5 leading-relaxed">Percentage of dining tables currently hosting guests with active orders.</p>
+          </div>
+
+          <div className="my-6 space-y-4">
+            <div className="flex items-end justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Total Utilization</span>
+              <span className="text-2xl font-black text-amber-400">
+                {totalTables > 0 ? Math.round((activeTablesCount / totalTables) * 100) : 0}%
+              </span>
+            </div>
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-900 border border-white/5">
+              <div 
+                className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-1000" 
+                style={{ width: `${totalTables > 0 ? Math.min((activeTablesCount / totalTables) * 100, 100) : 0}%` }} 
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-white/5 pt-4 flex justify-between text-xs text-zinc-500">
+            <span>Occupied: <strong>{activeTablesCount}</strong></span>
+            <span>Available: <strong>{Math.max(totalTables - activeTablesCount, 0)}</strong></span>
+          </div>
+        </Card>
+      </div>
+    </div>
   );
 }
 
-export function AdminAnalytics() {
+function ShoppingBagIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <section className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {stats.map((s, idx) => (
-          <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.06 }}>
-            <Card className="flex items-center justify-between gap-4 border-white/10 p-5">
-              <div>
-                <p className="text-sm text-white/60">{s.label}</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{s.value}</p>
-                <p className={`mt-1 text-sm ${s.trend === 'up' ? 'text-emerald-400' : 'text-rose-400'}`}>{s.change}</p>
-              </div>
-              <div className="flex flex-col items-end">
-                <div className="mb-2 flex items-center gap-2 rounded-full bg-white/5 px-2 py-1 text-xs text-white/70">
-                  <ArrowUpRight className="h-3 w-3" />
-                  Live
-                </div>
-                <Sparkline data={[5, 8, 6, 10, 9, 12, 14]} color={s.trend === 'up' ? '#34D399' : '#FB7185'} />
-              </div>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="col-span-2 border-white/10 p-6">
-          <div className="mb-4 flex items-start justify-between">
-            <div>
-              <p className="text-sm text-white/60">Revenue (30 days)</p>
-              <p className="mt-2 text-2xl font-semibold text-white">$124,820</p>
-            </div>
-            <div className="text-sm text-white/60">Growth: <span className="font-semibold text-emerald-400">+8%</span></div>
-          </div>
-
-          {/* Premium chart placeholder: simple area chart using SVG */}
-          <div className="h-40 w-full">
-            <svg viewBox="0 0 600 200" className="h-full w-full">
-              <defs>
-                <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.6" />
-                  <stop offset="100%" stopColor="#f97316" stopOpacity="0.05" />
-                </linearGradient>
-              </defs>
-              <path d="M0,150 C80,100 160,120 240,80 C320,40 400,60 480,30 C560,5 600,20 600,20 L600,200 L0,200 Z" fill="url(#g1)" />
-              <path d="M0,150 C80,100 160,120 240,80 C320,40 400,60 480,30 C560,5 600,20" fill="none" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-        </Card>
-
-        <Card className="border-white/10 p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm text-white/60">Active tables</p>
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-sm text-white/70">
-              <Users className="h-4 w-4" /> 72
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-white/70">Occupancy</p>
-              <p className="text-sm font-semibold text-white">78%</p>
-            </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-white/5">
-              <div className="h-2 w-[78%] bg-amber-400" />
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <Card className="border-white/10 p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm text-white/60">Recent orders</p>
-          <p className="text-sm text-white/50">Showing latest 10</p>
-        </div>
-
-        <div className="-mx-4 overflow-x-auto">
-          <table className="w-full table-auto min-w-[640px]">
-            <thead>
-              <tr className="text-left text-sm text-white/60">
-                <th className="px-4 py-3">Order</th>
-                <th className="px-4 py-3">Table</th>
-                <th className="px-4 py-3">Items</th>
-                <th className="px-4 py-3">Total</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentOrders.map((o) => (
-                <tr key={o.id} className="border-t border-white/6">
-                  <td className="px-4 py-3 text-sm text-white">{o.id}</td>
-                  <td className="px-4 py-3 text-sm text-white/70">{o.table}</td>
-                  <td className="px-4 py-3 text-sm text-white/70">{o.items}</td>
-                  <td className="px-4 py-3 text-sm text-white">{o.total}</td>
-                  <td className="px-4 py-3 text-sm">
-                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs ${
-                      o.status === 'Preparing' ? 'bg-amber-400/10 text-amber-300' : o.status === 'Served' ? 'bg-emerald-400/10 text-emerald-300' : 'bg-white/5 text-white/70'
-                    }`}>{o.status}</span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-white/60">{o.time}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-    </section>
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+      <path d="M3 6h18" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
   );
 }

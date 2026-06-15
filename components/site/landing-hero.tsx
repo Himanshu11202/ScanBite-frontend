@@ -3,7 +3,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, QrCode, Sparkles } from 'lucide-react';
+import { ArrowRight, QrCode, Sparkles, ShieldCheck, Zap, ChefHat } from 'lucide-react';
+import Link from 'next/link';
 
 export function LandingHero() {
   const containerVariants = {
@@ -11,14 +12,14 @@ export function LandingHero() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2,
-        delayChildren: 0.3,
+        staggerChildren: 0.15,
+        delayChildren: 0.2,
       },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 30 },
     visible: {
       opacity: 1,
       y: 0,
@@ -29,167 +30,156 @@ export function LandingHero() {
     },
   };
 
-  const floatingVariants = {
-    animate: {
-      y: [0, -20, 0],
-      transition: {
-        duration: 6,
-        repeat: Infinity,
-        ease: 'easeInOut',
-      },
-    },
+  const badgeVariants = {
+    hidden: { scale: 0.8, opacity: 0 },
+    visible: {
+      scale: 1,
+      opacity: 1,
+      transition: { type: 'spring', stiffness: 100, delay: 0.1 }
+    }
   };
 
   return (
-    <section className="relative h-screen w-full overflow-hidden bg-black">
-      {/* Video Background with Overlay */}
-      <div className="absolute inset-0">
-        {/* Gradient background instead of video for demo */}
-        <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />
-        
-        {/* Premium decorative elements */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,165,0,0.1)_0%,transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(139,69,19,0.1)_0%,transparent_50%)]" />
-
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-black/40" />
+    <section className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-zinc-950 pt-20">
+      {/* Premium Ambient Background Image with Dark & Golden Overlays */}
+      <div className="absolute inset-0 z-0">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-[10000ms] scale-105"
+          style={{ 
+            backgroundImage: "url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=2070')" 
+          }}
+        />
+        {/* Luxury Radial/Linear Gradients for high contrast and elegant lighting */}
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/70 to-zinc-950/80" />
+        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/90 via-transparent to-zinc-950/90" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.08)_0%,transparent_60%)]" />
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center">
+      {/* Hero Content Area */}
+      <div className="relative z-10 w-full max-w-7xl px-6 py-12 lg:px-8 flex flex-col items-center justify-center">
+        
+        {/* Luxury Glassmorphic Center Card */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="mx-auto max-w-4xl"
+          className="w-full max-w-4xl rounded-3xl border border-white/[0.08] bg-black/40 p-8 md:p-12 lg:p-16 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] text-center relative overflow-hidden"
         >
-          {/* Premium badge */}
+          {/* Subtle gold glow inside card */}
+          <div className="absolute -top-24 -left-24 w-48 h-48 rounded-full bg-amber-500/10 blur-3xl" />
+          <div className="absolute -bottom-24 -right-24 w-48 h-48 rounded-full bg-orange-600/10 blur-3xl" />
+
+          {/* Premium Tagline Badge */}
           <motion.div
-            variants={itemVariants}
+            variants={badgeVariants}
             className="mb-6 inline-block"
           >
-            <div className="rounded-full border border-white/20 bg-white/5 px-4 py-2 backdrop-blur-sm">
-              <p className="flex items-center gap-2 text-sm font-medium text-white/80">
-                <Sparkles className="h-4 w-4 text-amber-400" />
-                The Future of Restaurant Ordering
-              </p>
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/5 px-4 py-1.5 backdrop-blur-md">
+              <Sparkles className="h-4 w-4 text-amber-400 animate-pulse" />
+              <span className="text-xs font-semibold tracking-wider text-amber-200 uppercase">
+                Premium Restaurant Technology
+              </span>
             </div>
           </motion.div>
 
-          {/* Main heading with word-by-word animation */}
+          {/* Luxury Typography Title */}
           <motion.h1
             variants={itemVariants}
-            className="mb-6 text-5xl font-black leading-tight text-white sm:text-6xl lg:text-7xl"
+            className="mb-6 text-4xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl"
           >
-            <span className="bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent">
-              Scan, Order,
+            <span className="bg-gradient-to-r from-zinc-100 via-white to-zinc-300 bg-clip-text text-transparent">
+              Elevate Your Dining.
             </span>
             <br />
-            <span className="bg-gradient-to-r from-amber-200 via-orange-200 to-red-200 bg-clip-text text-transparent">
-              Enjoy Instantly
+            <span className="bg-gradient-to-r from-amber-400 via-amber-200 to-orange-500 bg-clip-text text-transparent drop-shadow-sm">
+              Accelerate Your Revenue.
             </span>
           </motion.h1>
 
-          {/* Subtitle */}
+          {/* SaaS Concept Explanation & Benefits */}
           <motion.p
             variants={itemVariants}
-            className="mb-8 text-lg text-white/70 sm:text-xl"
+            className="mx-auto mb-8 max-w-2xl text-base text-zinc-300 md:text-lg leading-relaxed"
           >
-            Smart QR code ordering with AI-powered menu scanning. Experience
-            <br className="hidden sm:inline" />
-            the future of dining technology today.
+            ScanBite is the all-in-one digital table assistant for luxury dining establishments. Give your guests immediate, contactless access to high-end visual menus, instant ordering, and secure payments right from their tables.
           </motion.p>
 
-          {/* CTA Buttons */}
+          {/* Value Prop Columns */}
+          <motion.div
+            variants={itemVariants}
+            className="mb-10 grid grid-cols-2 gap-4 text-left max-w-2xl mx-auto border-y border-white/5 py-6"
+          >
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <Zap className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-bold text-white">Zero Wait Times</h4>
+                  <p className="text-xs text-zinc-400">Scan & order in seconds, accelerating table turnover by 35%.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <Sparkles className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-bold text-white">Smart Visual Menu</h4>
+                  <p className="text-xs text-zinc-400">Increase average order value by 22% with AI cross-selling.</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <ChefHat className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-bold text-white">Staff Relief</h4>
+                  <p className="text-xs text-zinc-400">Minimize manual tasks. Let your staff focus on fine hospitality.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <ShieldCheck className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-bold text-white">Secure Checkout</h4>
+                  <p className="text-xs text-zinc-400">Safe, frictionless digital payments direct from the guest's device.</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Call-to-actions */}
           <motion.div
             variants={itemVariants}
             className="flex flex-col gap-4 sm:flex-row sm:justify-center"
           >
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button
-                size="lg"
-                className="h-14 bg-gradient-to-r from-amber-400 to-orange-500 text-black hover:shadow-xl hover:shadow-orange-500/30"
-              >
-                Get Started
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Link href="/signup">
+                <Button
+                  size="lg"
+                  className="h-14 w-full sm:w-auto px-8 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-orange-500 text-black font-semibold shadow-lg shadow-amber-500/20"
+                >
+                  Onboard Your Cafe
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
             </motion.div>
 
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-14 border-white/30 bg-white/5 text-white hover:bg-white/10"
-              >
-                <QrCode className="mr-2 h-5 w-5" />
-                Try Demo
-              </Button>
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Link href="/login">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-14 w-full sm:w-auto px-8 border-white/10 bg-white/5 text-white hover:bg-white/10 backdrop-blur-md"
+                >
+                  <QrCode className="mr-2 h-5 w-5 text-amber-400" />
+                  Admin Login
+                </Button>
+              </Link>
             </motion.div>
           </motion.div>
 
-          {/* Trust indicators */}
-          <motion.div
-            variants={itemVariants}
-            className="mt-12 flex flex-col gap-6 sm:flex-row sm:justify-center"
-          >
-            {['500+', '50,000+', '99.9%'].map((stat, idx) => (
-              <div key={idx} className="flex flex-col items-center">
-                <p className="text-2xl font-bold text-amber-400">{stat}</p>
-                <p className="text-sm text-white/60">
-                  {idx === 0
-                    ? 'Restaurants'
-                    : idx === 1
-                      ? 'Daily Orders'
-                      : 'Uptime'}
-                </p>
-              </div>
-            ))}
-          </motion.div>
         </motion.div>
-
-        {/* Floating decorative elements */}
-        <motion.div
-          variants={floatingVariants}
-          animate="animate"
-          className="absolute right-10 top-32 h-32 w-32 rounded-full bg-orange-500/20 blur-3xl"
-        />
-        <motion.div
-          variants={floatingVariants}
-          animate="animate"
-          transition={{ delay: 1 }}
-          className="absolute left-10 bottom-32 h-40 w-40 rounded-full bg-amber-500/10 blur-3xl"
-        />
       </div>
 
-      {/* Scroll indicator */}
-      <motion.div
-        animate={{ y: [0, 10, 0] }}
-        transition={{ duration: 2, repeat: Infinity }}
-        className="absolute bottom-8 left-1/2 z-20 -translate-x-1/2"
-      >
-        <div className="flex flex-col items-center gap-2 text-white/60">
-          <p className="text-sm">Scroll to explore</p>
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 14l-7 7m0 0l-7-7m7 7V3"
-            />
-          </svg>
-        </div>
-      </motion.div>
+      {/* Decorative Golden Ambient Bulbs */}
+      <div className="absolute right-0 bottom-0 z-0 h-64 w-64 bg-amber-500/5 rounded-full blur-3xl" />
+      <div className="absolute left-0 top-0 z-0 h-64 w-64 bg-orange-600/5 rounded-full blur-3xl" />
     </section>
   );
 }
