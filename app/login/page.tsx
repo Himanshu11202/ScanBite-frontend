@@ -7,8 +7,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Globe, Github, Twitter } from 'lucide-react';
-
+import { Lock, Mail, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/apiClient';
 import { toast } from 'sonner';
@@ -43,13 +42,6 @@ interface CafeResponse {
   id: string;
   ownerId: number;
   name: string;
-  description: string;
-  address: string;
-  phone: string;
-  openingTime: string;
-  closingTime: string;
-  totalTables: number;
-  isActive: boolean;
 }
 
 export default function LoginPage() {
@@ -106,115 +98,88 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="absolute inset-x-0 top-0 h-96 bg-[radial-gradient(circle_at_top,_rgba(255,184,28,0.2),_transparent_40%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-96 bg-[radial-gradient(circle_at_bottom,_rgba(96,165,250,0.16),_transparent_40%)]" />
-      <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col justify-center px-4 py-10 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr]"
-        >
-          <section className="order-2 lg:order-1 rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-[0_40px_120px_rgba(0,0,0,0.25)] backdrop-blur-xl sm:p-10">
-            <div className="mb-8 space-y-4">
-              <p className="text-sm uppercase tracking-[0.35em] text-amber-300">Welcome back</p>
-              <h1 className="text-4xl font-bold text-white sm:text-5xl">Log in to ScanBite</h1>
-              <p className="max-w-xl text-sm leading-7 text-white/65">
-                Access your restaurant control panel, manage live orders, billing, and AI-driven menus from one premium dashboard.
-              </p>
-            </div>
-
-            <div className="space-y-4 rounded-3xl bg-black/50 p-6">
-              {[
-                { icon: <Globe className="h-4 w-4" />, label: 'Continue with Google' },
-                { icon: <Github className="h-4 w-4" />, label: 'Continue with GitHub' },
-                { icon: <Twitter className="h-4 w-4" />, label: 'Continue with Twitter' },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  className="flex w-full items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80 transition hover:bg-white/10"
-                >
-                  {item.icon}
-                  {item.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="relative my-8 flex items-center justify-center text-sm text-white/40">
-              <span className="absolute inset-x-0 h-px bg-white/10" />
-              <span className="relative bg-black/5 px-4">Or continue with email</span>
-            </div>
-
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white/70">Email or Mobile Number</label>
-                <Input
-                  type="text"
-                  placeholder="you@restaurant.com or 10-digit number"
-                  {...register('email')}
-                />
-                {errors.email && <p className="text-sm text-rose-400">{errors.email.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white/70">Password</label>
-                <Input
-                  type="password"
-                  placeholder="Minimum 8 characters"
-                  {...register('password')}
-                />
-                {errors.password && <p className="text-sm text-rose-400">{errors.password.message}</p>}
-              </div>
-
-              <div className="flex items-center justify-between text-sm text-white/60">
-                <Link href="#" className="hover:text-white">Forgot password?</Link>
-                <span className="text-white/40">Secure access</span>
-              </div>
-
-              <Button type="submit" className="w-full py-4" disabled={isSubmitting}>
-                {isSubmitting ? 'Signing in…' : 'Continue'}
-              </Button>
-            </form>
-
-            <p className="mt-6 text-center text-sm text-white/60">
-              New to ScanBite?{' '}
-              <Link href="/signup" className="font-semibold text-amber-400 hover:text-amber-300">
-                Create account
-              </Link>
-            </p>
-          </section>
-
-          <aside className="order-1 rounded-[2rem] border border-white/10 bg-gradient-to-br from-slate-950/90 to-black/70 p-8 text-white shadow-[0_40px_120px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-10">
-            <div className="mb-8">
-              <span className="inline-flex rounded-full bg-amber-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-amber-300">
-                Premium Design
-              </span>
-            </div>
-            <div className="space-y-6">
-              <div className="space-y-3 rounded-3xl border border-white/10 bg-black/50 p-5">
-                <h2 className="text-xl font-semibold text-white">Glassmorphism UI</h2>
-                <p className="text-sm text-white/60">
-                  A premium experience with blurred layers, soft gradients, and elegant spacing for hospitality teams.
-                </p>
-              </div>
-              <div className="space-y-3 rounded-3xl border border-white/10 bg-black/50 p-5">
-                <h2 className="text-xl font-semibold text-white">Fast validation</h2>
-                <p className="text-sm text-white/60">
-                  Form validation built with Zod and React Hook Form ensures clear error handling and modern UX.
-                </p>
-              </div>
-              <div className="space-y-3 rounded-3xl border border-white/10 bg-black/50 p-5">
-                <h2 className="text-xl font-semibold text-white">Secure access</h2>
-                <p className="text-sm text-white/60">
-                  Secure login flow with encrypted credentials and social login placeholders for future integration.
-                </p>
-              </div>
-            </div>
-          </aside>
-        </motion.div>
+    <div className="relative flex min-h-screen w-full items-center justify-center bg-zinc-950 px-4 py-12">
+      {/* Background Image with elegant overlay */}
+      <div className="absolute inset-0 z-0">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          style={{ 
+            backgroundImage: "url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=2070')" 
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-zinc-950" />
       </div>
+
+      <div className="absolute top-6 left-6 z-10">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </Link>
+      </div>
+
+      {/* Centered Glassmorphic login card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 w-full max-w-md rounded-3xl border border-white/[0.08] bg-black/40 p-8 md:p-10 backdrop-blur-xl shadow-2xl shadow-black/80"
+      >
+        <div className="mb-8 text-center">
+          <Link href="/" className="text-2xl font-black bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent inline-block mb-3">
+            ScanBite
+          </Link>
+          <h2 className="text-2xl font-bold text-white tracking-tight">Welcome Back</h2>
+          <p className="text-sm text-zinc-400 mt-1.5">Enter details to manage your luxury establishment</p>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Email or Mobile Number</label>
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-zinc-500" />
+              <Input
+                type="text"
+                placeholder="you@restaurant.com or 10-digit number"
+                className="pl-11 bg-zinc-900/60 border-white/10 text-white placeholder:text-zinc-500 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20"
+                {...register('email')}
+              />
+            </div>
+            {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email.message}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Password</label>
+              <Link href="#" className="text-xs text-amber-400 hover:underline">Forgot password?</Link>
+            </div>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-zinc-500" />
+              <Input
+                type="password"
+                placeholder="••••••••"
+                className="pl-11 bg-zinc-900/60 border-white/10 text-white placeholder:text-zinc-500 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20"
+                {...register('password')}
+              />
+            </div>
+            {errors.password && <p className="text-xs text-red-400 mt-1">{errors.password.message}</p>}
+          </div>
+
+          <Button 
+            type="submit" 
+            className="w-full h-11 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-orange-500 text-black font-semibold mt-2" 
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Signing in...' : 'Sign In'}
+          </Button>
+        </form>
+
+        <p className="mt-8 text-center text-sm text-zinc-400">
+          New to ScanBite?{' '}
+          <Link href="/signup" className="font-semibold text-amber-400 hover:underline">
+            Register Cafe
+          </Link>
+        </p>
+      </motion.div>
     </div>
   );
 }

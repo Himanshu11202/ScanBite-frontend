@@ -1,9 +1,4 @@
-export const siteNavigation = [
-  { label: 'Platform', href: '#platform' },
-  { label: 'Menu', href: '#menu' },
-  { label: 'Orders', href: '#orders' },
-  { label: 'Pricing', href: '#pricing' }
-];
+export const siteNavigation = [];
 
 export const adminNavigation = [
   { label: 'Dashboard', href: '/admin/dashboard' },

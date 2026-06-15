@@ -86,17 +86,7 @@ export default function CustomerCheckoutPage() {
         throw new Error('Cafe or table details missing. Please re-scan the QR code.');
       }
       
-      // 1. Resolve tableNumber to tableId
-      const tablesRes = await api.get<TableItem[]>(`/tables/cafe/${cafeIdStr}`);
-      const matchedTable = tablesRes.data.find(
-        (t) => t.tableNumber.toString().trim() === tableNum.toString().trim()
-      );
-      
-      if (!matchedTable) {
-        throw new Error(`Table ${tableNum} is not registered in this cafe.`);
-      }
-
-      // 2. Register/Login Guest Customer
+      // 1. Register/Login Guest Customer
       let token: string | null = null;
       try {
         const regRes = await api.post<AuthResponse>('/auth/register', {
@@ -133,6 +123,16 @@ export default function CustomerCheckoutPage() {
       // Store guest token so further requests use it
       if (typeof window !== 'undefined') {
         localStorage.setItem('sb_token', token);
+      }
+
+      // 2. Resolve tableNumber to tableId (now authenticated)
+      const tablesRes = await api.get<TableItem[]>(`/tables/cafe/${cafeIdStr}`);
+      const matchedTable = tablesRes.data.find(
+        (t) => t.tableNumber.toString().trim() === tableNum.toString().trim()
+      );
+      
+      if (!matchedTable) {
+        throw new Error(`Table ${tableNum} is not registered in this cafe.`);
       }
 
       // Validate token to retrieve customer database ID
