@@ -1,6 +1,11 @@
-export const siteNavigation = [];
+export interface NavigationItem {
+  label: string;
+  href: string;
+}
 
-export const adminNavigation = [
+export const siteNavigation: NavigationItem[] = [];
+
+export const adminNavigation: NavigationItem[] = [
   { label: 'Dashboard', href: '/admin/dashboard' },
   { label: 'Cafe', href: '/admin/cafe' },
   { label: 'Menu', href: '/admin/menu' },
@@ -10,7 +15,7 @@ export const adminNavigation = [
   { label: 'Settings', href: '/admin/settings' }
 ];
 
-export const customerNavigation = [
+export const customerNavigation: NavigationItem[] = [
   { label: 'Digital Menu', href: '/customer/menu' },
   { label: 'Cart', href: '/customer/cart' },
   { label: 'Checkout', href: '/customer/checkout' }
