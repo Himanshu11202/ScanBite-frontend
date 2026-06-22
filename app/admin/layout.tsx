@@ -28,12 +28,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     try {
-      // Validate token
-      const valRes = await api.get<UserProfile>('/auth/validate');
+      // Fetch user profile and cafes in parallel
+      const [valRes, cafesRes] = await Promise.all([
+        api.get<UserProfile>('/auth/validate'),
+        api.get<CafeDetails[]>('/cafes')
+      ]);
+      
       setUser(valRes.data);
-
-      // Fetch cafes to verify cafe ownership
-      const cafesRes = await api.get<CafeDetails[]>('/cafes');
       const userCafe = cafesRes.data.find((c) => c.ownerId === valRes.data.id);
 
       if (userCafe) {

@@ -21,7 +21,7 @@ export function MenuGrid() {
       {menuItems.map((item) => (
         <Card key={item.id} className="flex flex-col justify-between gap-6 p-6">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-orange-200">{item.category ?? 'Signature'}</p>
+            <p className="text-sm uppercase tracking-[0.24em] text-orange-200">{'Signature'}</p>
             <h3 className="mt-4 text-xl font-semibold text-white">{item.name}</h3>
             <p className="mt-3 text-sm leading-7 text-white/70">{item.description}</p>
           </div>

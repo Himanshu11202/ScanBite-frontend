@@ -62,16 +62,17 @@ export default function LoginPage() {
       if (token) {
         localStorage.setItem('sb_token', token);
         
-        // Validate token to retrieve user ID
-        const valRes = await api.get<ValidateResponse>('/auth/validate', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const userId = valRes.data.id;
+        // Validate token and fetch cafes in parallel
+        const [valRes, cafesRes] = await Promise.all([
+          api.get<ValidateResponse>('/auth/validate', {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          api.get<CafeResponse[]>('/cafes', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
         
-        // Fetch cafes to verify if user has onboarding completed
-        const cafesRes = await api.get<CafeResponse[]>('/cafes', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const userId = valRes.data.id;
         const userCafes = cafesRes.data.filter((c) => c.ownerId === userId);
         
         toast.success('Logged in successfully!');

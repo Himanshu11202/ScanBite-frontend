@@ -125,8 +125,14 @@ export default function CustomerCheckoutPage() {
         localStorage.setItem('sb_token', token);
       }
 
-      // 2. Resolve tableNumber to tableId (now authenticated)
-      const tablesRes = await api.get<TableItem[]>(`/tables/cafe/${cafeIdStr}`);
+      // 2. Resolve tableNumber to tableId and validate customer ID in parallel (now authenticated)
+      const [tablesRes, valRes] = await Promise.all([
+        api.get<TableItem[]>(`/tables/cafe/${cafeIdStr}`),
+        api.get<ValidateResponse>('/auth/validate', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
       const matchedTable = tablesRes.data.find(
         (t) => t.tableNumber.toString().trim() === tableNum.toString().trim()
       );
@@ -135,10 +141,6 @@ export default function CustomerCheckoutPage() {
         throw new Error(`Table ${tableNum} is not registered in this cafe.`);
       }
 
-      // Validate token to retrieve customer database ID
-      const valRes = await api.get<ValidateResponse>('/auth/validate', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
       const customerId = valRes.data.id;
 
       // 3. Place order in DB
