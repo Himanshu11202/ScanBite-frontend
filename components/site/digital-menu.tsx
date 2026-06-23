@@ -23,6 +23,7 @@ interface MenuItem {
 interface CafeData {
   name: string;
   imageUrl?: string;
+  coverPhotos?: string;
 }
 
 interface CategoryData {
