@@ -59,9 +59,10 @@ export default function AdminDashboardPage() {
   
   const getImageUrl = (url?: string) => {
     if (!url) return '';
-    if (url.startsWith('http') || url.startsWith('data:')) return url;
-    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
-    return `${backendBase}${cleanUrl}`;
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    const cleanUrl = '/' + url.replace(/^\/+/, '');
+    const base = backendBase.endsWith('/') ? backendBase.slice(0, -1) : backendBase;
+    return `${base}${cleanUrl}`;
   };
 
   // Synthesize beautiful bell sound using HTML5 Web Audio API
@@ -235,7 +236,7 @@ export default function AdminDashboardPage() {
     : [];
 
   const mainCover = coverUrls.length > 0 ? getImageUrl(coverUrls[0]) : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200';
-  const cafeLogo = cafe.imageUrl ? getImageUrl(cafe.imageUrl) : null;
+  const cafeLogo = cafe.imageUrl && !cafe.imageUrl.includes('placeholder.png') ? getImageUrl(cafe.imageUrl) : null;
   const ownerPhoto = user?.ownerPhoto ? getImageUrl(user.ownerPhoto) : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120';
 
   return (
@@ -311,55 +312,12 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* 2. Real-Time Stats Bar */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Today's Revenue */}
-        <Card className="border-white/[0.08] bg-zinc-900/40 p-5 backdrop-blur-md flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 shrink-0">
-            <DollarSign className="h-6 w-6" />
-          </div>
-          <div>
-            <span className="block text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">Today's Revenue</span>
-            <h3 className="text-xl font-bold text-white mt-0.5">₹{todaysRevenue.toFixed(2)}</h3>
-          </div>
-        </Card>
-
-        {/* Active Tables */}
-        <Card className="border-white/[0.08] bg-zinc-900/40 p-5 backdrop-blur-md flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 shrink-0">
-            <Users className="h-6 w-6" />
-          </div>
-          <div>
-            <span className="block text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">Active Tables</span>
-            <h3 className="text-xl font-bold text-white mt-0.5">{activeTablesCount} / {cafe.totalTables}</h3>
-          </div>
-        </Card>
-
-        {/* Pending Orders */}
-        <Card className="border-white/[0.08] bg-zinc-900/40 p-5 backdrop-blur-md flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400 shrink-0">
-            <Clock className="h-6 w-6" />
-          </div>
-          <div>
-            <span className="block text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">Pending Orders</span>
-            <h3 className="text-xl font-bold text-white mt-0.5">{pendingOrdersCount} Queue</h3>
-          </div>
-        </Card>
-
-        {/* Active Service Requests */}
-        <Card className="border-white/[0.08] bg-zinc-900/40 p-5 backdrop-blur-md flex items-center gap-4 relative overflow-hidden">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-400 shrink-0 ${bellShake ? 'animate-bounce' : ''}`}>
-            <Bell className="h-6 w-6" />
-          </div>
-          <div>
-            <span className="block text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">Active Requests</span>
-            <h3 className="text-xl font-bold text-white mt-0.5">{activeRequestsCount} Tickets</h3>
-          </div>
-          {activeRequestsCount > 0 && (
-            <span className="absolute top-2.5 right-2.5 flex h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-          )}
-        </Card>
-      </div>
+      {/* 2. Premium SaaS Analytics Panel */}
+      <AdminAnalytics 
+        orders={orders} 
+        totalTables={cafe.totalTables} 
+        totalMenuItems={menuItems.length} 
+      />
 
       {/* 3. Operational Grid (Live Orders Queue + Active Service Requests) */}
       <div className="grid gap-6 lg:grid-cols-3">

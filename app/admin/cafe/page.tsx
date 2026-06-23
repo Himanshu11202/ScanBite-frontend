@@ -24,6 +24,16 @@ export default function AdminCafePage() {
   const [cafes, setCafes] = useState<CafeItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const backendBase = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://scanbite-backend.onrender.com';
+  
+  const getImageUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    const cleanUrl = '/' + url.replace(/^\/+/, '');
+    const base = backendBase.endsWith('/') ? backendBase.slice(0, -1) : backendBase;
+    return `${base}${cleanUrl}`;
+  };
+
   useEffect(() => {
     async function load() {
       try {
@@ -68,7 +78,7 @@ export default function AdminCafePage() {
         <div className="grid gap-6 md:grid-cols-3">
           {cafes.map((cafe) => (
             <Card key={cafe.id} className="p-6 overflow-hidden relative">
-              <div className="h-40 -mx-6 -mt-6 bg-cover bg-center mb-4 bg-white/5" style={cafe.imageUrl ? { backgroundImage: `url('${cafe.imageUrl}')` } : {}} />
+              <div className="h-40 -mx-6 -mt-6 bg-cover bg-center mb-4 bg-white/5" style={cafe.imageUrl && !cafe.imageUrl.includes('placeholder.png') ? { backgroundImage: `url('${getImageUrl(cafe.imageUrl)}')` } : { backgroundImage: `url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=120')` }} />
               <p className="text-xs uppercase tracking-[0.22em] text-orange-200">ID: {cafe.id}</p>
               <h2 className="mt-2 text-2xl font-semibold text-white">{cafe.name}</h2>
               <p className="mt-2 flex items-center gap-2 text-sm text-white/70"><MapPin className="h-4 w-4 text-orange-400"/> {cafe.address}</p>

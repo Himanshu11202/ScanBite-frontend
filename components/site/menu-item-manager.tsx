@@ -77,8 +77,9 @@ export function MenuItemManager() {
   const getImageUrl = (url?: string) => {
     if (!url) return '';
     if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
-    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
-    return `${backendBase}${cleanUrl}`;
+    const cleanUrl = '/' + url.replace(/^\/+/, '');
+    const base = backendBase.endsWith('/') ? backendBase.slice(0, -1) : backendBase;
+    return `${base}${cleanUrl}`;
   };
 
   const [editing, setEditing] = useState<MenuItemData | null>(null);

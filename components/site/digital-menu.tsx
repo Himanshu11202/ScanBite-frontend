@@ -57,7 +57,8 @@ export function DigitalMenu() {
   const [tableId, setTableId] = useState<number | null>(null);
   
   const [cafeName, setCafeName] = useState('ScanBite Cafe');
-  const [cafeImage, setCafeImage] = useState('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200');
+  const [cafeLogo, setCafeLogo] = useState<string | null>(null);
+  const [cafeCover, setCafeCover] = useState('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200');
   const [loading, setLoading] = useState(true);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -81,6 +82,18 @@ export function DigitalMenu() {
       const savedPhone = sessionStorage.getItem('sb_customer_phone');
       if (!savedName || !savedPhone) {
         setShowOnboarding(true);
+      } else {
+        // Run silent guest-auth to ensure fresh session token
+        api.post('/auth/guest-auth', {
+          phone: savedPhone.trim(),
+          name: savedName.trim()
+        }).then(res => {
+          if (res.data?.token) {
+            localStorage.setItem('sb_token', res.data.token);
+          }
+        }).catch(err => {
+          console.error('Silent guest auth failed:', err);
+        });
       }
     }
   }, []);
@@ -93,6 +106,14 @@ export function DigitalMenu() {
       try {
         const backendBase = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://scanbite-backend.onrender.com';
         
+        const getImageUrl = (url?: string) => {
+          if (!url) return '';
+          if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+          const cleanUrl = '/' + url.replace(/^\/+/, '');
+          const base = backendBase.endsWith('/') ? backendBase.slice(0, -1) : backendBase;
+          return `${base}${cleanUrl}`;
+        };
+
         // Fetch Cafe, Categories, Menu items, and Cafe Tables in parallel
         const [cafeRes, catsRes, itemsRes, tablesRes] = await Promise.all([
           api.get<CafeData>(`/cafes/${cafeId}`),
@@ -103,10 +124,16 @@ export function DigitalMenu() {
 
         if (cafeRes.data) {
           setCafeName(cafeRes.data.name);
-          if (cafeRes.data.imageUrl) {
-            const cleanLogoPath = cafeRes.data.imageUrl.startsWith('/') ? cafeRes.data.imageUrl : `/${cafeRes.data.imageUrl}`;
-            const fullUrl = cafeRes.data.imageUrl.startsWith('http') ? cafeRes.data.imageUrl : `${backendBase}${cleanLogoPath}`;
-            setCafeImage(fullUrl);
+          if (cafeRes.data.imageUrl && !cafeRes.data.imageUrl.includes('placeholder.png')) {
+            setCafeLogo(getImageUrl(cafeRes.data.imageUrl));
+          } else {
+            setCafeLogo(null);
+          }
+          if (cafeRes.data.coverPhotos) {
+            const firstCover = cafeRes.data.coverPhotos.split(',')[0].trim();
+            if (firstCover) {
+              setCafeCover(getImageUrl(firstCover));
+            }
           }
         }
 
@@ -119,9 +146,11 @@ export function DigitalMenu() {
           }
         }
 
-        setCategories(catsRes.data.map((c) => c.name));
-
+        const dbCategories = catsRes.data.map((c) => c.name.trim());
+        const itemCategories = new Set<string>();
         const mapped = itemsRes.data.map((it) => {
+          const catName = it.category?.name?.trim() || 'Other';
+          itemCategories.add(catName);
           const cleanItemPath = it.imageUrl ? (it.imageUrl.startsWith('/') ? it.imageUrl : `/${it.imageUrl}`) : '';
           return {
             id: it.id.toString(),
@@ -131,10 +160,20 @@ export function DigitalMenu() {
             isVeg: it.veg,
             spicy: it.spicy,
             image: it.imageUrl ? (it.imageUrl.startsWith('http') ? it.imageUrl : `${backendBase}${cleanItemPath}`) : undefined,
-            category: it.category?.name || '',
+            category: catName,
             available: it.available !== false
           };
         });
+
+        // Merge categories to ensure no items are hidden
+        const mergedCategories = [...dbCategories];
+        itemCategories.forEach((cat) => {
+          if (!mergedCategories.some((c) => c.toLowerCase() === cat.toLowerCase())) {
+            mergedCategories.push(cat);
+          }
+        });
+
+        setCategories(mergedCategories);
         setItems(mapped);
       } catch (err) {
         console.error('Failed to load digital menu data:', err);
@@ -147,17 +186,32 @@ export function DigitalMenu() {
     fetchData();
   }, [cafeId, tableNumber]);
 
-  function saveCustomerInfo() {
+  async function saveCustomerInfo() {
     if (!custName.trim() || !custPhone.trim()) {
       return toast.error('Please enter your name and phone number');
     }
     if (custPhone.trim().length < 10) {
       return toast.error('Please enter a valid phone number (at least 10 digits)');
     }
-    sessionStorage.setItem('sb_customer_name', custName.trim());
-    sessionStorage.setItem('sb_customer_phone', custPhone.trim());
-    setShowOnboarding(false);
-    toast.success(`Welcome, ${custName.trim()}!`);
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/guest-auth', {
+        phone: custPhone.trim(),
+        name: custName.trim()
+      });
+      if (res.data?.token) {
+        localStorage.setItem('sb_token', res.data.token);
+      }
+      sessionStorage.setItem('sb_customer_name', custName.trim());
+      sessionStorage.setItem('sb_customer_phone', custPhone.trim());
+      setShowOnboarding(false);
+      toast.success(`Welcome, ${custName.trim()}!`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Authentication failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleServiceRequest(type: string) {
@@ -272,16 +326,32 @@ export function DigitalMenu() {
       )}
 
       <div className="absolute inset-0 -z-10">
-        <div className="h-64 bg-cover bg-center" style={{ backgroundImage: `linear-gradient(to bottom, rgba(7,7,7,0.45), rgba(7,7,7,0.7)), url('${cafeImage}')` }} />
+        <div className="h-64 bg-cover bg-center animate-fade-in" style={{ backgroundImage: `linear-gradient(to bottom, rgba(7,7,7,0.45), rgba(7,7,7,0.7)), url('${cafeCover}')` }} />
       </div>
 
       <header className="mx-auto max-w-5xl p-4 pt-6 text-white">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{cafeName}</h1>
-            <p className="text-sm text-white/80">Welcome {tableNumber ? `at Table ${tableNumber}` : ''} — explore our curated menu</p>
+          <div className="flex items-center gap-4">
+            {cafeLogo ? (
+              <img 
+                src={cafeLogo} 
+                alt={cafeName} 
+                className="h-14 w-14 rounded-full object-cover border-2 border-amber-400/40 shadow-lg bg-zinc-900"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-400 text-black font-black text-xl shadow-lg shadow-amber-400/10">
+                {cafeName.substring(0, 2).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <h1 className="text-2xl font-black text-white tracking-tight leading-none">{cafeName}</h1>
+              <p className="text-xs text-white/80 mt-1">Welcome {tableNumber ? `at Table ${tableNumber}` : ''} — explore our physical menu categories</p>
+            </div>
           </div>
-          <div className="hidden sm:block text-right text-white/80">Open • 9am - 10pm</div>
+          <div className="hidden sm:block text-right text-white/80 text-xs font-semibold">Open • 9am - 10pm</div>
         </div>
       </header>
 

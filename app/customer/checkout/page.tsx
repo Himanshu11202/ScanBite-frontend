@@ -86,43 +86,17 @@ export default function CustomerCheckoutPage() {
         throw new Error('Cafe or table details missing. Please re-scan the QR code.');
       }
       
-      // 1. Register/Login Guest Customer
-      let token: string | null = null;
-      try {
-        const regRes = await api.post<AuthResponse>('/auth/register', {
-          username: phone.trim(),
-          password: phone.trim(),
-          fullName: name.trim(),
-          role: 'CUSTOMER'
-        });
-        token = regRes.data.token;
-      } catch (err: unknown) {
-        // If username exists, login instead
-        let isUsernameExists = false;
-        if (err && typeof err === 'object' && 'response' in err) {
-          const anyErr = err as { response?: { status?: number; data?: unknown } };
-          if (anyErr.response?.status === 400 || anyErr.response?.data === 'Username exists') {
-            isUsernameExists = true;
-          }
-        }
-        if (isUsernameExists) {
-          const loginRes = await api.post<AuthResponse>('/auth/login', {
-            username: phone.trim(),
-            password: phone.trim()
-          });
-          token = loginRes.data.token;
-        } else {
-          throw err;
-        }
-      }
-
+      // 1. Authenticate Guest Customer (Use existing token if available, else run guest-auth)
+      let token = typeof window !== 'undefined' ? localStorage.getItem('sb_token') : null;
       if (!token) {
-        throw new Error('Failed to authenticate guest account.');
-      }
-
-      // Store guest token so further requests use it
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('sb_token', token);
+        const authRes = await api.post<AuthResponse>('/auth/guest-auth', {
+          phone: phone.trim(),
+          name: name.trim()
+        });
+        token = authRes.data.token;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('sb_token', token);
+        }
       }
 
       // 2. Resolve tableNumber to tableId and validate customer ID in parallel (now authenticated)

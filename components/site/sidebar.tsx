@@ -27,11 +27,15 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   
   const getImageUrl = (url?: string) => {
     if (!url) return '';
-    if (url.startsWith('http') || url.startsWith('data:')) return url;
-    return `${backendBase}${url}`;
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    const cleanUrl = '/' + url.replace(/^\/+/, '');
+    const base = backendBase.endsWith('/') ? backendBase.slice(0, -1) : backendBase;
+    return `${base}${cleanUrl}`;
   };
 
-  const logoUrl = cafe?.imageUrl && !imageError ? getImageUrl(cafe.imageUrl) : null;
+  const logoUrl = cafe?.imageUrl && !cafe.imageUrl.includes('placeholder.png') && !imageError 
+    ? getImageUrl(cafe.imageUrl) 
+    : null;
 
   return (
     <aside

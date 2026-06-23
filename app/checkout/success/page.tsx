@@ -42,9 +42,10 @@ function SuccessPageContent() {
   
   const getImageUrl = (url?: string) => {
     if (!url) return '';
-    if (url.startsWith('http') || url.startsWith('data:')) return url;
-    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
-    return `${backendBase}${cleanUrl}`;
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    const cleanUrl = '/' + url.replace(/^\/+/, '');
+    const base = backendBase.endsWith('/') ? backendBase.slice(0, -1) : backendBase;
+    return `${base}${cleanUrl}`;
   };
 
   useEffect(() => {
@@ -77,7 +78,9 @@ function SuccessPageContent() {
     );
   }
 
-  const logoUrl = order?.cafe?.imageUrl ? getImageUrl(order.cafe.imageUrl) : null;
+  const logoUrl = order?.cafe?.imageUrl && !order.cafe.imageUrl.includes('placeholder.png')
+    ? getImageUrl(order.cafe.imageUrl)
+    : null;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white px-4 py-12 flex items-center justify-center">

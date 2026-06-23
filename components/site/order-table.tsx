@@ -118,7 +118,7 @@ export function OrderTable({ orders = [] }: OrderTableProps) {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right font-bold text-white text-sm">
-                      ${order.total.toFixed(2)}
+                      ₹{order.total.toFixed(2)}
                     </td>
                   </tr>
                 );

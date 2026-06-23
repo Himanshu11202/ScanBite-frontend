@@ -20,8 +20,10 @@ export function AdminTopnav({
   
   const getImageUrl = (url?: string) => {
     if (!url) return '';
-    if (url.startsWith('http') || url.startsWith('data:')) return url;
-    return `${backendBase}${url}`;
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    const cleanUrl = '/' + url.replace(/^\/+/, '');
+    const base = backendBase.endsWith('/') ? backendBase.slice(0, -1) : backendBase;
+    return `${base}${cleanUrl}`;
   };
 
   const [logoError, setLogoError] = useState(false);
@@ -33,7 +35,7 @@ export function AdminTopnav({
     : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120';
 
   // Cafe logo fallback
-  const cafeLogo = cafe?.imageUrl && !logoError
+  const cafeLogo = cafe?.imageUrl && !cafe.imageUrl.includes('placeholder.png') && !logoError
     ? getImageUrl(cafe.imageUrl) 
     : null;
 

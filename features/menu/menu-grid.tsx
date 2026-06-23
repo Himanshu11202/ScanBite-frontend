@@ -26,7 +26,7 @@ export function MenuGrid() {
             <p className="mt-3 text-sm leading-7 text-white/70">{item.description}</p>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <p className="text-xl font-semibold text-white">${item.price.toFixed(2)}</p>
+            <p className="text-xl font-semibold text-white">₹{item.price.toFixed(2)}</p>
             <Button variant="outline">Add to cart</Button>
           </div>
         </Card>
