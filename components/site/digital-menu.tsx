@@ -54,11 +54,15 @@ export function DigitalMenu() {
   
   const [cafeId, setCafeId] = useState<number | null>(null);
   const [tableNumber, setTableNumber] = useState<string | null>(null);
+  const [tableId, setTableId] = useState<number | null>(null);
   
   const [cafeName, setCafeName] = useState('ScanBite Cafe');
-  const [cafeImage, setCafeImage] = useState('https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1600&q=60');
+  const [cafeImage, setCafeImage] = useState('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200');
+  const [loading, setLoading] = useState(true);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [sendingService, setSendingService] = useState(false);
   const [custName, setCustName] = useState('');
   const [custPhone, setCustPhone] = useState('');
 
@@ -85,47 +89,63 @@ export function DigitalMenu() {
     if (!cafeId) return;
 
     async function fetchData() {
+      setLoading(true);
       try {
-        // Fetch Cafe details
-        const cafeRes = await api.get<CafeData>(`/cafes/${cafeId}`);
+        const backendBase = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://scanbite-backend.onrender.com';
+        
+        // Fetch Cafe, Categories, Menu items, and Cafe Tables in parallel
+        const [cafeRes, catsRes, itemsRes, tablesRes] = await Promise.all([
+          api.get<CafeData>(`/cafes/${cafeId}`),
+          api.get<CategoryData[]>(`/menu/categories/cafe/${cafeId}`),
+          api.get<BackendItem[]>(`/menu?cafeId=${cafeId}`),
+          api.get<any[]>(`/tables/cafe/${cafeId}`)
+        ]);
+
         if (cafeRes.data) {
           setCafeName(cafeRes.data.name);
           if (cafeRes.data.imageUrl) {
-            const backendBase = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://scanbite-backend.onrender.com';
-            const fullUrl = cafeRes.data.imageUrl.startsWith('http') ? cafeRes.data.imageUrl : `${backendBase}${cafeRes.data.imageUrl}`;
+            const cleanLogoPath = cafeRes.data.imageUrl.startsWith('/') ? cafeRes.data.imageUrl : `/${cafeRes.data.imageUrl}`;
+            const fullUrl = cafeRes.data.imageUrl.startsWith('http') ? cafeRes.data.imageUrl : `${backendBase}${cleanLogoPath}`;
             setCafeImage(fullUrl);
           }
         }
 
-        // Fetch categories
-        const catsRes = await api.get<CategoryData[]>(`/menu/categories/cafe/${cafeId}`);
+        if (tablesRes.data && tableNumber) {
+          const matched = tablesRes.data.find(
+            (t) => t.tableNumber.toString().trim() === tableNumber.toString().trim()
+          );
+          if (matched) {
+            setTableId(matched.id);
+          }
+        }
+
         setCategories(catsRes.data.map((c) => c.name));
 
-        // Fetch menu items
-        const itemsRes = await api.get<BackendItem[]>('/menu');
-        const backendBase = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://scanbite-backend.onrender.com';
-        const mapped = itemsRes.data
-          .filter((it) => it.cafe?.id === cafeId)
-          .map((it) => ({
+        const mapped = itemsRes.data.map((it) => {
+          const cleanItemPath = it.imageUrl ? (it.imageUrl.startsWith('/') ? it.imageUrl : `/${it.imageUrl}`) : '';
+          return {
             id: it.id.toString(),
             name: it.name,
             price: it.price,
             description: it.description,
             isVeg: it.veg,
             spicy: it.spicy,
-            image: it.imageUrl ? (it.imageUrl.startsWith('http') ? it.imageUrl : `${backendBase}${it.imageUrl}`) : undefined,
+            image: it.imageUrl ? (it.imageUrl.startsWith('http') ? it.imageUrl : `${backendBase}${cleanItemPath}`) : undefined,
             category: it.category?.name || '',
             available: it.available !== false
-          }));
+          };
+        });
         setItems(mapped);
       } catch (err) {
-        console.error(err);
+        console.error('Failed to load digital menu data:', err);
         toast.error('Failed to load menu. Please try again.');
+      } finally {
+        setLoading(false);
       }
     }
 
     fetchData();
-  }, [cafeId]);
+  }, [cafeId, tableNumber]);
 
   function saveCustomerInfo() {
     if (!custName.trim() || !custPhone.trim()) {
@@ -140,7 +160,33 @@ export function DigitalMenu() {
     toast.success(`Welcome, ${custName.trim()}!`);
   }
 
-  const filtered = useMemo(() => activeCategory ? items.filter(i=>i.category===activeCategory) : items, [items, activeCategory]);
+  async function handleServiceRequest(type: string) {
+    if (!tableId) {
+      return toast.error('Session table not resolved. Please scan QR again.');
+    }
+    setSendingService(true);
+    try {
+      await api.post('/service-requests', {
+        tableId,
+        requestType: type
+      });
+      toast.success(`${type.replace('_', ' ')} request sent to waiter!`);
+      setShowServiceModal(false);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to request waiter assistance.');
+    } finally {
+      setSendingService(false);
+    }
+  }
+
+  // Case-insensitive filtering
+  const filtered = useMemo(() => 
+    activeCategory 
+      ? items.filter((i) => i.category.trim().toLowerCase() === activeCategory.trim().toLowerCase()) 
+      : items, 
+    [items, activeCategory]
+  );
 
   return (
     <div className="relative min-h-screen">
@@ -183,6 +229,48 @@ export function DigitalMenu() {
         </div>
       )}
 
+      {/* Service Request Assistance Modal */}
+      {showServiceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <Card className="w-full max-w-md border border-white/10 bg-zinc-950 p-6 shadow-2xl relative">
+            <button 
+              onClick={() => setShowServiceModal(false)}
+              className="absolute top-4 right-4 text-zinc-500 hover:text-white text-sm"
+            >
+              ✕
+            </button>
+            <div className="text-center mb-6">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-amber-300">
+                Service Assistance
+              </span>
+              <h2 className="text-xl font-black text-white mt-1">Request Service</h2>
+              <p className="text-xs text-zinc-500 mt-1">Need help? Alert the waitstaff instantly.</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Call Waiter', value: 'WAITER', icon: '🙋‍♂️' },
+                { label: 'Water Bottle', value: 'WATER', icon: '💧' },
+                { label: 'Tissue Paper', value: 'TISSUE_PAPER', icon: '🧻' },
+                { label: 'Extra Plates', value: 'EXTRA_PLATE', icon: '🍽️' },
+                { label: 'Extra Spoons', value: 'EXTRA_SPOON', icon: '🥄' },
+                { label: 'Extra Roti', value: 'EXTRA_ROTI', icon: '🫓' }
+              ].map((service) => (
+                <button
+                  key={service.value}
+                  disabled={sendingService}
+                  onClick={() => handleServiceRequest(service.value)}
+                  className="flex flex-col items-center gap-2 rounded-2xl border border-white/5 bg-white/5 p-4 text-center hover:border-amber-400/50 hover:bg-white/10 transition-all duration-300"
+                >
+                  <span className="text-2xl">{service.icon}</span>
+                  <span className="text-xs font-bold text-white tracking-tight">{service.label}</span>
+                </button>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
       <div className="absolute inset-0 -z-10">
         <div className="h-64 bg-cover bg-center" style={{ backgroundImage: `linear-gradient(to bottom, rgba(7,7,7,0.45), rgba(7,7,7,0.7)), url('${cafeImage}')` }} />
       </div>
@@ -198,53 +286,124 @@ export function DigitalMenu() {
       </header>
 
       <main className="mx-auto max-w-5xl p-4 pb-32">
-        <div className="mb-4 overflow-x-auto">
-          <div className="flex gap-3">
-            <button onClick={()=>setActiveCategory(null)} className={`rounded-full px-3 py-1 text-sm ${activeCategory===null ? 'bg-amber-500 text-black' : 'bg-white/5 text-white/80'}`}>All</button>
-            {categories.map((c) => (
-              <button key={c} onClick={()=>setActiveCategory(c)} className={`rounded-full px-3 py-1 text-sm ${activeCategory===c ? 'bg-amber-500 text-black' : 'bg-white/5 text-white/80'}`}>{c}</button>
-            ))}
+        {loading ? (
+          <div className="space-y-8">
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-8 w-20 shrink-0 rounded-full bg-white/5 animate-pulse" />
+              ))}
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-72 w-full rounded-2xl bg-zinc-900/40 border border-white/[0.05] animate-pulse" />
+              ))}
+            </div>
           </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((it) => (
-            <Card key={it.id} className="overflow-hidden p-0 relative">
-              {it.available === false && (
-                <div className="absolute inset-0 bg-black/70 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center text-center p-4">
-                  <span className="rounded-full bg-rose-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg">Out of stock</span>
-                  <p className="text-[10px] text-white/60 mt-1">This dish is currently unavailable.</p>
-                </div>
-              )}
-              <div className="relative h-44 w-full bg-white/5">
-                {it.image ? <img src={it.image} alt={it.name} className="h-full w-full object-cover" /> : <div className="h-full w-full bg-white/5 flex items-center justify-center text-white/20">No Image</div>}
-                <div className="absolute left-3 top-3 rounded-full bg-black/60 px-2 py-1 text-xs text-white">{it.isVeg ? 'Veg' : 'Non-Veg'}</div>
-              </div>
-
-              <div className="p-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-white">{it.name}</h3>
-                    <p className="mt-1 text-xs text-white/70">{it.description}</p>
-                  </div>
-                  <div className="text-sm font-semibold text-amber-300">₹{Number(it.price).toFixed(2)}</div>
-                </div>
-
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs text-white/60">{Array.from({length: it.spicy||0}).map((_,i)=>(<span key={i} role="img" aria-label="spicy">🌶️</span>))}</div>
-                  <Button 
-                    disabled={it.available === false}
-                    onClick={()=>addItem({ id: it.id, name: it.name, price: Number(it.price), image: it.image }, 1)} 
-                    className={`font-semibold ${it.available === false ? 'bg-neutral-800 text-white/40 cursor-not-allowed' : 'bg-amber-500 hover:bg-amber-600 text-black'}`}
+        ) : (
+          <>
+            <div className="mb-6 overflow-x-auto pb-2">
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setActiveCategory(null)} 
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider transition ${
+                    activeCategory === null ? 'bg-amber-400 text-black' : 'bg-white/5 text-white/85 hover:bg-white/10'
+                  }`}
+                >
+                  All
+                </button>
+                {categories.map((c) => (
+                  <button 
+                    key={c} 
+                    onClick={() => setActiveCategory(c)} 
+                    className={`rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider transition ${
+                      activeCategory?.trim().toLowerCase() === c.trim().toLowerCase() 
+                        ? 'bg-amber-400 text-black' 
+                        : 'bg-white/5 text-white/85 hover:bg-white/10'
+                    }`}
                   >
-                    {it.available === false ? 'Unavailable' : 'Add'}
-                  </Button>
-                </div>
+                    {c}
+                  </button>
+                ))}
               </div>
-            </Card>
-          ))}
-        </div>
+            </div>
+
+            {filtered.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-12 text-center border border-white/5 bg-zinc-900/10 rounded-2xl backdrop-blur-sm">
+                <p className="text-zinc-400 text-sm">No items found under this category.</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filtered.map((it) => (
+                  <Card key={it.id} className="overflow-hidden p-0 relative border-white/[0.06] bg-zinc-900/30 backdrop-blur-md flex flex-col justify-between h-full">
+                    {it.available === false && (
+                      <div className="absolute inset-0 bg-black/70 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center text-center p-4">
+                        <span className="rounded-full bg-rose-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg">Out of stock</span>
+                        <p className="text-[10px] text-white/60 mt-1">This dish is currently unavailable.</p>
+                      </div>
+                    )}
+                    <div className="relative h-44 w-full bg-white/5">
+                      {it.image ? (
+                        <img 
+                          src={it.image} 
+                          alt={it.name} 
+                          className="h-full w-full object-cover" 
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=300';
+                          }}
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-white/5 flex items-center justify-center text-white/20 text-xs">No Image</div>
+                      )}
+                      <div className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+                        {it.isVeg ? 'Veg' : 'Non-Veg'}
+                      </div>
+                    </div>
+
+                    <div className="p-4 flex-1 flex flex-col justify-between">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="text-sm font-semibold text-white tracking-tight">{it.name}</h3>
+                          <p className="mt-1 text-xs text-zinc-400 font-light line-clamp-2 leading-relaxed">{it.description}</p>
+                        </div>
+                        <div className="text-sm font-bold text-amber-300 shrink-0">₹{Number(it.price).toFixed(2)}</div>
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: it.spicy || 0 }).map((_, i) => (
+                            <span key={i} role="img" aria-label="spicy" className="text-xs">🌶️</span>
+                          ))}
+                        </div>
+                        <Button 
+                          disabled={it.available === false}
+                          onClick={() => addItem({ id: it.id, name: it.name, price: Number(it.price), image: it.image }, 1)} 
+                          className={`font-semibold h-9 text-xs px-4 ${
+                            it.available === false ? 'bg-neutral-800 text-white/45 cursor-not-allowed' : 'bg-amber-400 hover:bg-amber-500 text-black'
+                          }`}
+                        >
+                          {it.available === false ? 'Unavailable' : 'Add to Order'}
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </main>
+
+      {/* Floating Service Request assistance bell button */}
+      {tableNumber && (
+        <div className="fixed bottom-6 left-6 z-40">
+          <Button 
+            onClick={() => setShowServiceModal(true)} 
+            className="flex h-12 items-center gap-2 rounded-full bg-zinc-900 border border-white/10 px-5 text-xs font-semibold uppercase tracking-wider text-white shadow-2xl hover:bg-zinc-800 transition duration-300"
+          >
+            🛎️ Request Service
+          </Button>
+        </div>
+      )}
 
       <CartOverlay />
       <StickyCartWrapper />

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Menu, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,13 +24,16 @@ export function AdminTopnav({
     return `${backendBase}${url}`;
   };
 
+  const [logoError, setLogoError] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
+
   // Luxury owner profile photo fallback
-  const ownerAvatar = user?.ownerPhoto 
+  const ownerAvatar = user?.ownerPhoto && !avatarError
     ? getImageUrl(user.ownerPhoto) 
     : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120';
 
   // Cafe logo fallback
-  const cafeLogo = cafe?.imageUrl 
+  const cafeLogo = cafe?.imageUrl && !logoError
     ? getImageUrl(cafe.imageUrl) 
     : null;
 
@@ -59,6 +62,7 @@ export function AdminTopnav({
                   src={cafeLogo} 
                   alt={cafe.name} 
                   className="h-9 w-9 rounded-full object-cover border border-white/10" 
+                  onError={() => setLogoError(true)}
                 />
               ) : (
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-bold">
@@ -106,6 +110,7 @@ export function AdminTopnav({
                 src={ownerAvatar} 
                 alt={user?.fullName || 'Owner'} 
                 className="h-full w-full object-cover"
+                onError={() => setAvatarError(true)}
               />
             </div>
             

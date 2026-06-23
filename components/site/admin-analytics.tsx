@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
-import { ArrowUpRight, TrendingUp, CreditCard, Users, Landmark, Clock } from 'lucide-react';
+import { TrendingUp, CreditCard, Users, Clock, ChefHat } from 'lucide-react';
 
 interface OrderItem {
   id: number;
@@ -30,9 +30,10 @@ interface OrderEntity {
 interface AdminAnalyticsProps {
   orders?: OrderEntity[];
   totalTables?: number;
+  totalMenuItems?: number;
 }
 
-export function AdminAnalytics({ orders = [], totalTables = 10 }: AdminAnalyticsProps) {
+export function AdminAnalytics({ orders = [], totalTables = 10, totalMenuItems = 0 }: AdminAnalyticsProps) {
   // 1. Calculate live statistics
   const totalOrdersCount = orders.length;
   
@@ -58,7 +59,7 @@ export function AdminAnalytics({ orders = [], totalTables = 10 }: AdminAnalytics
     },
     { 
       label: 'Gross Revenue', 
-      value: `$${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+      value: `₹${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
       change: 'Settled payments', 
       icon: CreditCard 
     },
@@ -67,6 +68,12 @@ export function AdminAnalytics({ orders = [], totalTables = 10 }: AdminAnalytics
       value: `${activeTablesCount} / ${totalTables}`, 
       change: `Occupancy: ${totalTables > 0 ? Math.round((activeTablesCount / totalTables) * 100) : 0}%`, 
       icon: Users 
+    },
+    { 
+      label: 'Total Menu Items', 
+      value: totalMenuItems.toString(), 
+      change: 'Active menu', 
+      icon: ChefHat 
     },
     { 
       label: 'Pending Settlements', 
@@ -119,8 +126,8 @@ export function AdminAnalytics({ orders = [], totalTables = 10 }: AdminAnalytics
 
   return (
     <div className="space-y-6">
-      {/* 4 Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* 5 Stats Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {stats.map((s, idx) => {
           const Icon = s.icon;
           return (
@@ -130,21 +137,21 @@ export function AdminAnalytics({ orders = [], totalTables = 10 }: AdminAnalytics
               animate={{ opacity: 1, y: 0 }} 
               transition={{ duration: 0.4, delay: idx * 0.05 }}
             >
-              <Card className="relative overflow-hidden border-white/[0.08] bg-zinc-900/40 p-5 md:p-6 backdrop-blur-md">
+              <Card className="relative overflow-hidden border-white/[0.08] bg-zinc-900/40 p-5 md:p-6 backdrop-blur-md h-full flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 block truncate">
                       {s.label}
                     </span>
-                    <h3 className="mt-2 text-2xl font-bold tracking-tight text-white">
+                    <h3 className="mt-2 text-xl font-bold tracking-tight text-white truncate">
                       {s.value}
                     </h3>
-                    <p className="mt-1.5 text-xs font-medium text-zinc-500">
+                    <p className="mt-1.5 text-[10px] font-medium text-zinc-500">
                       {s.change}
                     </p>
                   </div>
-                  <div className="rounded-xl bg-white/5 p-3 text-amber-400">
-                    <Icon className="h-5 w-5" />
+                  <div className="rounded-xl bg-white/5 p-2.5 text-amber-400 shrink-0">
+                    <Icon className="h-4.5 w-4.5" />
                   </div>
                 </div>
               </Card>

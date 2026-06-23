@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { adminNavigation } from '@/constants/navigation';
@@ -20,6 +21,7 @@ const icons = {
 export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = usePathname();
   const { cafe } = useAdmin();
+  const [imageError, setImageError] = useState(false);
 
   const backendBase = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://scanbite-backend.onrender.com';
   
@@ -29,7 +31,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
     return `${backendBase}${url}`;
   };
 
-  const logoUrl = cafe?.imageUrl ? getImageUrl(cafe.imageUrl) : null;
+  const logoUrl = cafe?.imageUrl && !imageError ? getImageUrl(cafe.imageUrl) : null;
 
   return (
     <aside
@@ -49,6 +51,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
               src={logoUrl} 
               alt={cafe.name} 
               className="h-8 w-8 rounded-full object-cover border border-white/10 shrink-0" 
+              onError={() => setImageError(true)}
             />
           ) : (
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-400 text-black font-black text-xs shrink-0 shadow-lg shadow-amber-400/10">

@@ -72,6 +72,15 @@ export function MenuItemManager() {
   const [cafeId, setCafeId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const backendBase = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://scanbite-backend.onrender.com';
+  
+  const getImageUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+    return `${backendBase}${cleanUrl}`;
+  };
+
   const [editing, setEditing] = useState<MenuItemData | null>(null);
   const [name, setName] = useState('');
   const [price, setPrice] = useState<number | ''>('');
@@ -96,17 +105,16 @@ export function MenuItemManager() {
         if (userCafe) {
           setCafeId(userCafe.id);
           
-          // Load items
-          const itemsRes = await api.get<MenuItemData[]>('/menu');
-          const filteredItems = itemsRes.data.filter((it) => it.cafe?.id === userCafe.id);
-          setItems(filteredItems);
+          // Load items for this cafe only
+          const itemsRes = await api.get<MenuItemData[]>(`/menu?cafeId=${userCafe.id}`);
+          setItems(itemsRes.data);
 
           // Load categories
           const catsRes = await api.get<CategoryItem[]>(`/menu/categories/cafe/${userCafe.id}`);
           setCategories(catsRes.data);
         }
       } catch (err) {
-        console.error(err);
+        console.error('Failed to load menu items data:', err);
       } finally {
         setLoading(false);
       }
@@ -122,7 +130,7 @@ export function MenuItemManager() {
       setIsVeg(editing.veg);
       setSpicy(editing.spicy || 0);
       setSelectedCatId(editing.category?.id?.toString() || '');
-      setImagePreview(editing.imageUrl);
+      setImagePreview(editing.imageUrl ? getImageUrl(editing.imageUrl) : undefined);
       setAvailable(editing.available !== false);
     } else {
       setName(''); setPrice(''); setDescription(''); setIsVeg(true); setSpicy(0); setSelectedCatId(''); setImagePreview(undefined); setImageFile(null);
@@ -216,6 +224,30 @@ export function MenuItemManager() {
     }
   }
 
+  if (loading) {
+    return (
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-4 w-12 bg-white/5 rounded animate-pulse" />
+            <div className="h-8 w-32 bg-white/5 rounded animate-pulse" />
+          </div>
+          <div className="h-10 w-28 bg-white/5 rounded animate-pulse" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="md:col-span-2">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-56 w-full rounded-2xl bg-zinc-900/40 border border-white/[0.05] animate-pulse" />
+              ))}
+            </div>
+          </div>
+          <div className="h-[450px] rounded-2xl bg-zinc-900/40 border border-white/[0.05] animate-pulse" />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-6">
       <div className="flex items-center justify-between">
@@ -237,7 +269,14 @@ export function MenuItemManager() {
                 <div className="relative h-44 w-full overflow-hidden rounded-md bg-white/5">
                   {(it.imageUrl || it.image) ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={it.imageUrl || it.image} alt={it.name} className="h-full w-full object-cover" />
+                    <img 
+                      src={getImageUrl(it.imageUrl || it.image)} 
+                      alt={it.name} 
+                      className="h-full w-full object-cover" 
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=300';
+                      }}
+                    />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-white/40"><ImageIcon className="h-8 w-8"/></div>
                   )}
