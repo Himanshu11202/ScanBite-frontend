@@ -150,6 +150,9 @@ export default function AdminDashboardPage() {
     if (!cafe) return;
     
     async function loadData() {
+      if (!cafe) {
+        return;
+      }
       try {
         const [ordersRes, menuRes, servicesRes] = await Promise.all([
           api.get<OrderEntity[]>(`/orders?cafeId=${cafe.id}`),
@@ -188,7 +191,7 @@ export default function AdminDashboardPage() {
       client.subscribe('/topic/orders', (frame) => {
         try {
           const updatedOrder: OrderEntity = JSON.parse(frame.body);
-          if (updatedOrder.cafe?.id === cafe.id) {
+          if (updatedOrder.cafe?.id === cafe?.id) {
             setOrders((prev) => {
               const exists = prev.some((o) => o.id === updatedOrder.id);
               if (exists) {
@@ -214,7 +217,7 @@ export default function AdminDashboardPage() {
       client.subscribe('/topic/services', (frame) => {
         try {
           const req: ServiceRequestEntity = JSON.parse(frame.body);
-          if (req.cafe?.id === cafe.id) {
+          if (req.cafe?.id === cafe?.id) {
             if (req.status === 'PENDING') {
               setServiceRequests((prev) => {
                 if (prev.some((s) => s.id === req.id)) return prev;
