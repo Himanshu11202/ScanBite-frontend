@@ -238,7 +238,7 @@ export function DigitalMenu() {
   // Case-insensitive filtering
   const filtered = useMemo(() => 
     activeCategory 
-      ? items.filter((i) => i.category.trim().toLowerCase() === activeCategory.trim().toLowerCase()) 
+      ? items.filter((i) => i.category?.trim().toLowerCase() === activeCategory.trim().toLowerCase()) 
       : items, 
     [items, activeCategory]
   );
