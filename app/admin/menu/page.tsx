@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { MenuItemManager } from '@/components/site/menu-item-manager';
-import { CategoryManager } from '@/components/site/category-manager';
+import { PremiumMenuBuilder } from '@/components/site/premium-menu-builder';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { UploadCloud, Plus, Trash2, Loader2, Sparkles, Cpu, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { 
+  UploadCloud, Plus, Trash2, Loader2, Sparkles, 
+  Cpu, AlertTriangle, CheckCircle2 
+} from 'lucide-react';
 import api from '@/services/apiClient';
 import { toast } from 'sonner';
 
@@ -31,7 +33,10 @@ export default function AdminMenuPage() {
   const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai');
   const [cafeId, setCafeId] = useState<number | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scanStage, setScanStage] = useState('');
   const [scanError, setScanError] = useState<string | null>(null);
+  const [confidence, setConfidence] = useState<number | null>(null);
   const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
   const [simulateFailure, setSimulateFailure] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -54,44 +59,123 @@ export default function AdminMenuPage() {
     loadCafe();
   }, []);
 
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1000;
+          const MAX_HEIGHT = 1000;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              });
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          }, 'image/jpeg', 0.8);
+        };
+      };
+    });
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !cafeId) return;
 
     setIsScanning(true);
+    setScanProgress(0);
+    setScanStage('Compressing image...');
     setScanError(null);
     setScannedItems([]);
+    setConfidence(null);
+
+    // 1. Compress image before uploading
+    const compressedFile = await compressImage(file);
+
+    // Start progress intervals for UX
+    const progressInterval = setInterval(() => {
+      setScanProgress((prev) => {
+        if (prev >= 95) {
+          clearInterval(progressInterval);
+          return 95;
+        }
+        const nextProgress = prev + Math.floor(Math.random() * 8) + 3;
+        
+        if (nextProgress < 20) {
+          setScanStage('Uploading compressed image...');
+        } else if (nextProgress < 40) {
+          setScanStage('Detecting menu boundaries...');
+        } else if (nextProgress < 60) {
+          setScanStage('Extracting categories...');
+        } else if (nextProgress < 80) {
+          setScanStage('Parsing items & prices...');
+        } else {
+          setScanStage('Building layout preview...');
+        }
+        return nextProgress;
+      });
+    }, 250);
 
     const formData = new FormData();
-    // To simulate failure, if simulateFailure is checked, rename file to contain "fail"
     if (simulateFailure) {
-      const renamedFile = new File([file], 'fail_menu_photo.jpg', { type: file.type });
+      const renamedFile = new File([compressedFile], 'fail_menu_photo.jpg', { type: compressedFile.type });
       formData.append('file', renamedFile);
     } else {
-      formData.append('file', file);
+      formData.append('file', compressedFile);
     }
 
     try {
-      const response = await api.post<ScannedItem[]>('/menu/scan', formData, {
+      const response = await api.post<any>('/menu/scan', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setScannedItems(response.data);
+      
+      clearInterval(progressInterval);
+      setScanProgress(100);
+      setScanStage('Extraction Complete!');
+      
+      setConfidence(response.data.confidence);
+      setScannedItems(response.data.items);
       toast.success('Menu scanned successfully!');
-    } catch (err: unknown) {
+    } catch (err: any) {
+      clearInterval(progressInterval);
       console.error(err);
       let errMsg = 'AI extraction failed. The photo was too blurry or lacked contrast.';
-      if (err && typeof err === 'object' && 'response' in err) {
-        const anyErr = err as { response?: { data?: unknown } };
-        if (typeof anyErr.response?.data === 'string') {
-          errMsg = anyErr.response.data;
-        }
+      if (err.response?.data && typeof err.response.data === 'string') {
+        errMsg = err.response.data;
       }
       setScanError(errMsg);
-      toast.error('AI Scan failed. Please input items manually.');
-      // Initialize with one empty row for manual entry
-      setScannedItems([{ name: '', price: 0, categoryName: '', veg: true, description: '' }]);
+      toast.error(errMsg);
     } finally {
-      setIsScanning(false);
+      setTimeout(() => {
+        setIsScanning(false);
+      }, 500);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -120,6 +204,27 @@ export default function AdminMenuPage() {
       return;
     }
 
+    // Front-end validations
+    const hasNegative = validItems.some(it => it.price < 0);
+    if (hasNegative) {
+      toast.error('Prices cannot be negative. Please correct before saving.');
+      return;
+    }
+
+    // Check duplicates inside request itself
+    const keys = new Set<string>();
+    let hasDuplicate = false;
+    for (const item of validItems) {
+      const key = (item.categoryName?.trim().toLowerCase() || 'uncategorized') + ':' + item.name.trim().toLowerCase();
+      if (keys.has(key)) {
+        toast.error(`Duplicate item "${item.name}" in category "${item.categoryName || 'Uncategorized'}" detected.`);
+        hasDuplicate = true;
+        break;
+      }
+      keys.add(key);
+    }
+    if (hasDuplicate) return;
+
     try {
       await api.post('/menu/batch', {
         cafeId,
@@ -128,15 +233,13 @@ export default function AdminMenuPage() {
       toast.success('AI Menu items saved to database!');
       setScannedItems([]);
       setScanError(null);
+      setConfidence(null);
       // Switch tab to manual so they can view/edit/delete the newly imported items
       setActiveTab('manual');
-      // Wait a moment and trigger reload of managers
-      setTimeout(() => {
-        window.location.reload();
-      }, 800);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error('Failed to save menu items.');
+      const errMsg = err.response?.data || 'Failed to save menu items.';
+      toast.error(typeof errMsg === 'string' ? errMsg : 'Failed to save menu items.');
     }
   };
 
@@ -177,32 +280,28 @@ export default function AdminMenuPage() {
       </div>
 
       {activeTab === 'manual' ? (
-        /* Manual Setup: Original Components */
-        <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-4">
-            <MenuItemManager />
-          </div>
-          <div className="border-t border-white/10 pt-8 lg:border-t-0 lg:border-l lg:border-white/10 lg:pl-8 lg:pt-0">
-            <CategoryManager />
-          </div>
-        </div>
+        /* Manual Setup: Redesigned premium nested Category Board */
+        <PremiumMenuBuilder />
       ) : (
         /* AI Menu Scanner Section */
         <div className="space-y-8">
           <Card className="border-white/10 bg-neutral-950 p-6 md:p-8">
-            <div className="grid gap-8 lg:grid-cols-[0.4fr_0.6fr]">
+            <div className="grid gap-8 lg:grid-cols-[0.45fr_0.55fr]">
+              
               {/* Scan Upload Section */}
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-white">Upload Menu Photo</h3>
                   <p className="text-xs text-white/60 mt-1">
-                    Upload a high-quality picture of your physical menu. AI will automatically extract categories, dish names, descriptions, and pricing.
+                    Upload a high-quality picture of your physical menu. AI will automatically check for menus, extract headings, dish names, and pricing.
                   </p>
                 </div>
 
                 <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-2xl p-8 bg-white/5 hover:bg-white/10 transition cursor-pointer text-center"
+                  onClick={() => !isScanning && fileInputRef.current?.click()}
+                  className={`flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-2xl p-8 bg-white/5 hover:bg-white/10 transition text-center ${
+                    isScanning ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'
+                  }`}
                 >
                   <input 
                     ref={fileInputRef} 
@@ -213,10 +312,18 @@ export default function AdminMenuPage() {
                     disabled={isScanning}
                   />
                   {isScanning ? (
-                    <div className="space-y-3">
+                    <div className="space-y-4 w-full max-w-xs mx-auto">
                       <Loader2 className="h-10 w-10 text-amber-400 animate-spin mx-auto" />
-                      <p className="text-sm font-medium text-white">Extracting menu details...</p>
-                      <p className="text-xs text-white/50">Calling simulated Gemini API</p>
+                      <div className="space-y-1 text-center">
+                        <p className="text-sm font-bold text-white">{scanStage}</p>
+                        <p className="text-xs text-amber-400 font-mono">{scanProgress}%</p>
+                      </div>
+                      <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-300"
+                          style={{ width: `${scanProgress}%` }}
+                        />
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -230,8 +337,8 @@ export default function AdminMenuPage() {
                 {/* Simulate failure toggle */}
                 <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10">
                   <div>
-                    <p className="text-xs font-semibold text-white">Simulate AI Scan Failure</p>
-                    <p className="text-[10px] text-white/50">Force the scanner to trigger error state.</p>
+                    <p className="text-xs font-semibold text-white">Simulate Non-Menu or Low Contrast</p>
+                    <p className="text-[10px] text-white/50">Forces scanner to trigger detection warning.</p>
                   </div>
                   <input 
                     type="checkbox" 
@@ -244,19 +351,44 @@ export default function AdminMenuPage() {
 
               {/* Preview & Edit Section */}
               <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-white">Editable Menu Preview</h3>
-                  <p className="text-xs text-white/60 mt-1">
-                    Review extracted items, tweak errors, or add missing details before saving.
-                  </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Editable Menu Preview</h3>
+                    <p className="text-xs text-white/60 mt-1">
+                      Review extracted items, categories, and prices before saving to the menu.
+                    </p>
+                  </div>
+
+                  {confidence !== null && (
+                    <div className="flex items-center gap-1.5 self-start sm:self-center">
+                      <span className="text-[10px] uppercase font-bold text-zinc-500">Confidence:</span>
+                      <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded-md ${
+                        confidence >= 70 
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      }`}>
+                        {confidence.toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {scanError && (
-                  <div className="flex gap-3 rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 text-xs text-rose-300">
+                  <div className="flex gap-3 rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 text-xs text-rose-300 animate-fade-in">
                     <AlertTriangle className="h-5 w-5 shrink-0" />
                     <div>
-                      <span className="font-semibold block mb-0.5">AI Scan Alert</span>
-                      {scanError} You can still manually key in menu rows in the table below.
+                      <span className="font-semibold block mb-0.5">Menu Scan Error</span>
+                      {scanError}
+                    </div>
+                  </div>
+                )}
+
+                {confidence !== null && confidence < 70 && (
+                  <div className="flex gap-3 rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 text-xs text-rose-300 animate-pulse">
+                    <AlertTriangle className="h-5 w-5 shrink-0" />
+                    <div>
+                      <span className="font-semibold block mb-0.5">Low Contrast / Quality Warning</span>
+                      Menu image quality is low. Please review extracted items.
                     </div>
                   </div>
                 )}
@@ -269,8 +401,8 @@ export default function AdminMenuPage() {
                           <tr className="border-b border-white/10 bg-white/5 text-white/70 font-semibold uppercase tracking-wider">
                             <th className="p-3">Dish Name</th>
                             <th className="p-3">Category</th>
-                            <th className="p-3">Price</th>
-                            <th className="p-3">Type</th>
+                            <th className="p-3 w-24">Price (₹)</th>
+                            <th className="p-3 w-28">Type</th>
                             <th className="p-3">Description</th>
                             <th className="p-3 text-center">Action</th>
                           </tr>
@@ -294,7 +426,7 @@ export default function AdminMenuPage() {
                                   className="h-8 text-xs bg-neutral-950 border-neutral-800"
                                 />
                               </td>
-                              <td className="p-2 w-24">
+                              <td className="p-2">
                                 <Input 
                                   type="number"
                                   value={item.price} 
@@ -303,7 +435,7 @@ export default function AdminMenuPage() {
                                   className="h-8 text-xs bg-neutral-950 border-neutral-800"
                                 />
                               </td>
-                              <td className="p-2 w-28">
+                              <td className="p-2">
                                 <select
                                   value={item.veg ? 'veg' : 'nonveg'}
                                   onChange={(e) => handleFieldChange(index, 'veg', e.target.value === 'veg')}
@@ -342,27 +474,28 @@ export default function AdminMenuPage() {
                         variant="outline" 
                         size="sm"
                         onClick={handleAddRow}
-                        className="inline-flex items-center gap-1.5 border-white/10 hover:bg-white/5"
+                        className="inline-flex items-center gap-1.5 border-white/10 hover:bg-white/5 text-xs text-zinc-300"
                       >
                         <Plus className="h-4 w-4" />
                         Add Row Manually
                       </Button>
                       <Button 
                         onClick={handleSaveMenu}
-                        className="inline-flex items-center gap-2 bg-amber-400 text-black hover:bg-amber-300 font-semibold"
+                        className="inline-flex items-center gap-2 bg-amber-400 text-black hover:bg-amber-300 font-semibold text-xs px-4"
                       >
                         <CheckCircle2 className="h-4 w-4" />
-                        Save Menu Items
+                        Save To Menu
                       </Button>
                     </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center border border-white/5 rounded-xl bg-black/20 p-12 text-center text-white/40">
-                    <Sparkles className="h-8 w-8 mb-2 opacity-50" />
-                    <p className="text-xs">No scanned items yet. Upload a menu image to get started.</p>
+                    <Sparkles className="h-8 w-8 mb-2 opacity-50 text-amber-400" />
+                    <p className="text-xs">No scanned items yet. Upload a menu image to start extraction.</p>
                   </div>
                 )}
               </div>
+
             </div>
           </Card>
         </div>

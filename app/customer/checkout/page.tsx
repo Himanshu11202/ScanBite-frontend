@@ -10,6 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import api from '@/services/apiClient';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
+import { 
+  ShoppingBag, CreditCard, ArrowLeft, ArrowRight, 
+  Trash2, Plus, Minus, ClipboardCheck, Sparkles 
+} from 'lucide-react';
 
 interface TableItem {
   id: number;
@@ -28,6 +33,8 @@ interface OrderResponse {
   id: string;
 }
 
+type PaymentMethod = 'card' | 'upi' | 'cash';
+
 export default function CustomerCheckoutPage() {
   const router = useRouter();
   const { items, total, setQty, removeItem, clear } = useCart();
@@ -35,6 +42,7 @@ export default function CustomerCheckoutPage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [tableNumber, setTableNumber] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
@@ -57,17 +65,8 @@ export default function CustomerCheckoutPage() {
     }
   }, []);
 
-  function inc(id: string) {
-    const it = items.find((x) => x.id === id);
-    if (!it) return;
-    setQty(id, it.qty + 1);
-  }
-
-  function dec(id: string) {
-    const it = items.find((x) => x.id === id);
-    if (!it) return;
-    setQty(id, Math.max(1, it.qty - 1));
-  }
+  const tax = total * 0.05; // 5% GST
+  const grandTotal = total + tax;
 
   async function handlePlaceOrder() {
     if (items.length === 0) {
@@ -86,7 +85,7 @@ export default function CustomerCheckoutPage() {
         throw new Error('Cafe or table details missing. Please re-scan the QR code.');
       }
       
-      // 1. Authenticate Guest Customer (Use existing token if available, else run guest-auth)
+      // 1. Authenticate Guest Customer
       let token = typeof window !== 'undefined' ? localStorage.getItem('sb_token') : null;
       if (!token) {
         const authRes = await api.post<AuthResponse>('/auth/guest-auth', {
@@ -99,7 +98,7 @@ export default function CustomerCheckoutPage() {
         }
       }
 
-      // 2. Resolve tableNumber to tableId and validate customer ID in parallel (now authenticated)
+      // 2. Resolve tableNumber and validate customer ID
       const [tablesRes, valRes] = await Promise.all([
         api.get<TableItem[]>(`/tables/cafe/${cafeIdStr}`),
         api.get<ValidateResponse>('/auth/validate', {
@@ -154,82 +153,221 @@ export default function CustomerCheckoutPage() {
   }
 
   return (
-    <section className="space-y-8 p-4 max-w-6xl mx-auto">
-      <div className="rounded-[2rem] border border-white/10 bg-black/80 p-8 shadow-soft">
-        <p className="text-sm uppercase tracking-[0.24em] text-orange-300">Checkout</p>
-        <h1 className="mt-4 text-4xl font-semibold text-white">Review and Place Order</h1>
-      </div>
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-[2rem] border border-white/10 bg-black/80 p-8 shadow-soft space-y-6">
-          <h2 className="text-2xl font-semibold text-white">Billing Details</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="mb-2 block text-sm text-white/70">Full Name</label>
-              <Input placeholder="Alex Jordan" value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm text-white/70">Phone / Mobile Number</label>
-              <Input placeholder="9876543210" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm text-white/70">Table Number</label>
-              <Input placeholder="e.g. 5" value={tableNumber} disabled={hasSavedTable} onChange={(e) => setTableNumber(e.target.value)} />
-            </div>
-            <hr className="border-white/10" />
-            <h3 className="text-lg font-semibold text-white">Mock Payment details</h3>
-            <div>
-              <label className="mb-2 block text-sm text-white/70">Card Number</label>
-              <Input placeholder="1234 5678 9012 3456" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm text-white/70">Expiry</label>
-                <Input placeholder="MM / YY" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm text-white/70">CVC</label>
-                <Input placeholder="123" value={cvc} onChange={(e) => setCvc(e.target.value)} />
-              </div>
-            </div>
-            <Button onClick={handlePlaceOrder} disabled={submitting} className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold">
-              {submitting ? 'Placing Order...' : 'Place Order'}
-            </Button>
-          </div>
+    <div className="min-h-screen bg-zinc-950 text-white pb-16">
+      
+      <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+        {/* Header Navigation */}
+        <div className="flex items-center justify-between">
+          <Button 
+            onClick={() => router.push('/customer/menu')} 
+            variant="ghost" 
+            className="text-zinc-400 hover:text-white rounded-xl text-xs gap-1.5 px-3"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to Menu
+          </Button>
+          <span className="text-[10px] uppercase font-bold tracking-[0.25em] text-amber-300">Dining Table #{tableNumber}</span>
         </div>
 
-        <div className="rounded-[2rem] border border-white/10 bg-black/80 p-8 shadow-soft space-y-6">
-          <h2 className="text-2xl font-semibold text-white">Order Summary</h2>
-          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-            {items.length === 0 && <p className="text-white/50">Your cart is empty.</p>}
-            {items.map((it) => (
-              <div key={it.id} className="flex items-center justify-between border-b border-white/5 pb-3">
-                <div className="flex items-center gap-3">
-                  {it.image ? (
-                    <img src={it.image} alt={it.name} className="h-12 w-12 rounded-md object-cover" />
-                  ) : (
-                    <div className="h-12 w-12 rounded-md bg-white/5 flex items-center justify-center text-white/20 text-xs">No Image</div>
-                  )}
-                  <div>
-                    <h4 className="text-sm font-semibold text-white">{it.name}</h4>
-                    <p className="text-xs text-white/50">₹{it.price.toFixed(2)}</p>
+        {/* Banner Card */}
+        <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-zinc-900/60 p-8 shadow-2xl backdrop-blur-xl">
+          <div className="absolute top-0 right-0 h-40 w-40 bg-[radial-gradient(circle_at_center,_rgba(251,191,36,0.08),_transparent_60%)]" />
+          <p className="text-[10px] uppercase font-bold tracking-widest text-amber-300">Checkout Room</p>
+          <h1 className="mt-2 text-3xl font-black text-white tracking-tight leading-none">Review & Place Order</h1>
+          <p className="mt-2 text-xs text-zinc-400 font-light max-w-md">Verify your cart contents and table destination before dispatching to the kitchen.</p>
+        </div>
+
+        {/* Columns Grid */}
+        <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr] items-start">
+          
+          {/* Left Column: Guest Info & Payment Choices */}
+          <Card className="border-white/[0.08] bg-zinc-900/40 p-6 md:p-8 backdrop-blur-xl rounded-[2rem] shadow-2xl space-y-6">
+            <h2 className="text-lg font-bold text-white tracking-tight">Billing & Guest Details</h2>
+            
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Your Name</label>
+                <Input 
+                  placeholder="e.g. John Doe" 
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)} 
+                  className="bg-black/30 border-white/5 text-xs h-11 rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Mobile Number</label>
+                <Input 
+                  placeholder="e.g. 9876543210" 
+                  value={phone} 
+                  onChange={(e) => setPhone(e.target.value)} 
+                  className="bg-black/30 border-white/5 text-xs h-11 rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Table Destination</label>
+                <Input 
+                  placeholder="e.g. 12" 
+                  value={tableNumber} 
+                  disabled={hasSavedTable} 
+                  onChange={(e) => setTableNumber(e.target.value)} 
+                  className="bg-black/30 border-white/5 text-xs h-11 rounded-xl"
+                />
+              </div>
+
+              <hr className="border-white/5 my-2" />
+
+              {/* Payment Tabs */}
+              <div className="space-y-3">
+                <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Select Payment Method</label>
+                <div className="grid grid-cols-3 gap-2 bg-black/40 border border-white/5 p-1 rounded-xl">
+                  {(['card', 'upi', 'cash'] as PaymentMethod[]).map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => setPaymentMethod(method)}
+                      className={`py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition ${
+                        paymentMethod === method
+                          ? 'bg-amber-400 text-black font-extrabold'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      {method}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Card Inputs */}
+              {paymentMethod === 'card' && (
+                <div className="space-y-3 p-4 bg-black/20 rounded-2xl border border-white/5 animate-fade-in">
+                  <div className="space-y-1">
+                    <label className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider">Card Number</label>
+                    <Input 
+                      placeholder="4111 2222 3333 4444" 
+                      value={cardNumber} 
+                      onChange={(e) => setCardNumber(e.target.value)}
+                      className="bg-black/30 border-white/5 text-xs h-10 rounded-lg"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider">Expiry Date</label>
+                      <Input 
+                        placeholder="MM/YY" 
+                        value={expiry} 
+                        onChange={(e) => setExpiry(e.target.value)}
+                        className="bg-black/30 border-white/5 text-xs h-10 rounded-lg"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider">CVC</label>
+                      <Input 
+                        placeholder="123" 
+                        type="password"
+                        maxLength={3}
+                        value={cvc} 
+                        onChange={(e) => setCvc(e.target.value)}
+                        className="bg-black/30 border-white/5 text-xs h-10 rounded-lg"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => dec(it.id)}>-</Button>
-                  <span className="text-sm text-white px-1">{it.qty}</span>
-                  <Button variant="outline" size="sm" onClick={() => inc(it.id)}>+</Button>
-                  <Button variant="ghost" size="sm" className="text-rose-500 hover:text-rose-600" onClick={() => removeItem(it.id)}>Remove</Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              )}
 
-          <div className="border-t border-white/10 pt-4 flex justify-between text-lg font-semibold text-white">
-            <span>Total</span>
-            <span className="text-amber-300">₹{total.toFixed(2)}</span>
-          </div>
+              {/* UPI Info */}
+              {paymentMethod === 'upi' && (
+                <div className="p-4 bg-black/20 rounded-2xl border border-white/5 text-center text-xs text-zinc-400 animate-fade-in">
+                  ⚡ Pay using any UPI app (PhonePe, GPay, Paytm) on confirmation.
+                </div>
+              )}
+
+              {/* Cash Info */}
+              {paymentMethod === 'cash' && (
+                <div className="p-4 bg-black/20 rounded-2xl border border-white/5 text-center text-xs text-zinc-400 animate-fade-in">
+                  💵 Cash payment can be settled with the waiter at your table.
+                </div>
+              )}
+
+              <Button 
+                onClick={handlePlaceOrder} 
+                disabled={submitting || items.length === 0} 
+                className="w-full bg-amber-400 hover:bg-amber-500 text-black font-black text-xs h-12 rounded-xl mt-4 shadow-lg shadow-amber-400/10 flex items-center justify-center gap-1.5"
+              >
+                {submitting ? 'Placing Order...' : 'Place Order Now'} <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </Card>
+
+          {/* Right Column: modern order items breakdown */}
+          <Card className="border-white/[0.08] bg-zinc-900/40 p-6 md:p-8 backdrop-blur-xl rounded-[2rem] shadow-2xl space-y-6">
+            <h2 className="text-lg font-bold text-white tracking-tight">Order summary</h2>
+            
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+              {items.length === 0 ? (
+                <div className="text-center py-12 text-xs text-zinc-500 font-medium">Your cart is empty.</div>
+              ) : (
+                items.map((it) => (
+                  <div key={it.id} className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <div className="flex items-center gap-3">
+                      {it.image ? (
+                        <img src={it.image} alt={it.name} className="h-10 w-10 rounded-xl object-cover border border-white/5 bg-neutral-900 shrink-0" />
+                      ) : (
+                        <div className="h-10 w-10 rounded-xl bg-neutral-900 border border-white/5 flex items-center justify-center text-[9px] text-zinc-600 shrink-0">Food</div>
+                      )}
+                      <div>
+                        <h4 className="text-xs font-bold text-white leading-tight">{it.name}</h4>
+                        <span className="text-[10px] font-extrabold text-amber-300 font-mono mt-0.5 block">₹{it.price.toFixed(0)}</span>
+                      </div>
+                    </div>
+
+                    {/* Counter selector inside checkout summary */}
+                    <div className="flex items-center bg-white/5 border border-white/10 rounded-lg overflow-hidden h-8 px-0.5">
+                      <button 
+                        onClick={() => {
+                          if (it.qty === 1) {
+                            removeItem(it.id);
+                          } else {
+                            setQty(it.id, it.qty - 1);
+                          }
+                        }}
+                        className="h-7 w-7 flex items-center justify-center text-zinc-400 hover:text-white"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <span className="w-5 text-center text-xs font-bold font-mono">{it.qty}</span>
+                      <button 
+                        onClick={() => setQty(it.id, it.qty + 1)}
+                        className="h-7 w-7 flex items-center justify-center text-zinc-400 hover:text-white"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Calculations Breakdown */}
+            <div className="border-t border-white/5 pt-4 space-y-2 text-xs font-medium">
+              <div className="flex justify-between text-zinc-400">
+                <span>Subtotal</span>
+                <span className="font-mono">₹{total.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-zinc-400">
+                <span>GST Tax (5%)</span>
+                <span className="font-mono">₹{tax.toFixed(2)}</span>
+              </div>
+              <div className="border-t border-white/10 pt-3 flex justify-between text-base font-black text-white">
+                <span>Grand Total</span>
+                <span className="text-amber-300 font-mono text-lg">₹{grandTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          </Card>
+
         </div>
       </div>
-    </section>
+      
+    </div>
   );
 }
